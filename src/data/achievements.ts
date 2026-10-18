@@ -22,6 +22,13 @@ export const ACHIEVEMENTS: Record<string, IAchievement> = {
     icon: '🍵',
     unlocked: false
   },
+  ach_tea_brewing_apprentice: {
+    id: 'ach_tea_brewing_apprentice',
+    title: 'Nghệ Nhân Pha Trà Tập Sự',
+    description: 'Hoàn thành bài học pha trà và thưởng thức mẻ trà xanh Tân Cương đầu tiên.',
+    icon: '🫖',
+    unlocked: false
+  },
   ach_quiz_master: {
     id: 'ach_quiz_master',
     title: 'Uyên Bác Xứ Trà',

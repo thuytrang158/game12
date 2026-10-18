@@ -87,6 +87,27 @@ export const INITIAL_QUESTS: Record<string, IQuest> = {
     },
     status: 'locked'
   },
+  quest_first_tea: {
+    id: 'quest_first_tea',
+    title: 'Chén Trà Đầu Tiên',
+    regionId: 'tan_cuong',
+    giverNpcId: 'npc_bac_lam',
+    description: 'Theo mẻ trà vừa sao tới Hiên thưởng trà, tìm hiểu dụng cụ rồi tự tay pha và nếm thử chén trà đầu tiên.',
+    culturalNote: 'Lượng trà, lượng nước, nhiệt độ và thời gian hãm cùng góp phần tạo nên một trải nghiệm riêng. Công thức trong trò chơi chỉ là gợi ý để bắt đầu thử nghiệm.',
+    objectives: [
+      { id: 'obj_inspect_finished_tea', text: 'Quan sát mẻ trà xanh Tân Cương vừa sao', completed: false },
+      { id: 'obj_meet_bac_lam_pavilion', text: 'Tự đi tới Hiên thưởng trà và gặp Bác Lâm', completed: false },
+      { id: 'obj_learn_brewing_tools', text: 'Tìm hiểu các dụng cụ pha trà', completed: false },
+      { id: 'obj_prepare_brewing_set', text: 'Chuẩn bị ấm chén và chọn lượng trà, lượng nước', completed: false },
+      { id: 'obj_brew_first_pot', text: 'Điều chỉnh nhiệt độ, rót nước và canh thời gian hãm', completed: false },
+      { id: 'obj_serve_first_pot', text: 'Rót trà ra chén để mời Bác Lâm', completed: false },
+      { id: 'obj_evaluate_first_pot', text: 'Quan sát và xem gợi ý hương vị mô phỏng', completed: false },
+      { id: 'obj_enjoy_first_tea', text: 'Thưởng thức chén trà đầu tiên cùng Bác Lâm', completed: false },
+      { id: 'obj_unlock_tea_discovery', text: 'Mở khóa ghi nhận văn hóa trà Tân Cương', completed: false }
+    ],
+    rewards: { items: [], achievementId: 'ach_tea_brewing_apprentice' },
+    status: 'locked'
+  },
   quest_atk_dinh_hoa: {
     id: 'quest_atk_dinh_hoa',
     title: 'Theo Dấu Lịch Sử',

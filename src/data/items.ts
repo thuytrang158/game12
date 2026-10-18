@@ -30,12 +30,12 @@ export const INITIAL_ITEMS: Record<string, IItem> = {
   },
   tea_processed_tan_cuong: {
     id: 'tea_processed_tan_cuong',
-    name: 'Trà Tân Cương Thượng Hạng',
-    description: 'Trà búp móc câu được sao sấy thủ công trên chảo gang đỏ lửa.',
+    name: 'Mẻ Trà Xanh Tân Cương Đầu Tiên',
+    description: 'Mẻ trà xanh khô do chính tay bạn hái và sao. Có thể quan sát cánh trà trước khi đem pha.',
     category: 'tea',
     icon: '🍵',
     quantity: 0,
-    loreText: 'Cánh trà xoăn chặt như móc câu, phủ một lớp phấn mốc cau huyền ảo.',
+    loreText: 'Cánh trà khô xoăn cong, lưu lại dấu ấn của công đoạn làm héo, vò và sao. Hình dáng cùng hương thơm có thể thay đổi theo nguyên liệu và cách chế biến.',
     realWorldFact: 'Chè Tân Cương được bảo hộ chỉ dẫn địa lý từ năm 2007 và là Di sản văn hóa phi vật thể quốc gia.'
   },
   fragment_tea_culture: {

@@ -110,6 +110,32 @@ export interface IAchievement {
   unlockedAt?: string;
 }
 
+export interface ITeaBrewingSessionState {
+  mode: 'guided' | 'free';
+  stage: number;
+  selectedTeaProductId: string;
+  teaQuantity: number;
+  waterVolume: number;
+  waterTemperature: number;
+  pouredWater: number;
+  steepingDuration: number;
+  inspectedTools: string[];
+  selectedAroma: string;
+  filledCups: number;
+  savedAt: number;
+}
+
+export interface IFavoriteTeaRecipe {
+  id: string;
+  name: string;
+  teaProductId: string;
+  teaQuantity: number;
+  waterVolume: number;
+  waterTemperature: number;
+  steepingDuration: number;
+  createdAt: number;
+}
+
 export interface IGameSaveData {
   version: number;
   playerName: string;
@@ -125,5 +151,8 @@ export interface IGameSaveData {
   teaHarvestHighScore: number;
   coins?: number;
   passportStamps?: Record<string, boolean>;
+  teaBrewingSession?: ITeaBrewingSessionState;
+  teaBrewingHistory?: ITeaBrewingSessionState[];
+  favoriteTeaRecipes?: IFavoriteTeaRecipe[];
   timestamp: number;
 }

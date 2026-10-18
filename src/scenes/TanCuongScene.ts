@@ -32,6 +32,7 @@ export class TanCuongScene extends Phaser.Scene {
 
   private interactKey!: Phaser.Input.Keyboard.Key;
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private escapeKey!: Phaser.Input.Keyboard.Key;
   private mapWidth = 960;
   private mapHeight = 720;
   private autoSaveTimer: number = 0;
@@ -41,6 +42,7 @@ export class TanCuongScene extends Phaser.Scene {
   private isSunsetActive: boolean = false;
   private sunsetOverlay: Phaser.GameObjects.Graphics | null = null;
   private sunsetParticles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+  private cinematicBacLamOriginalPosition: { x: number; y: number } | null = null;
 
   constructor() {
     super({ key: 'TanCuongScene' });
@@ -51,6 +53,7 @@ export class TanCuongScene extends Phaser.Scene {
     this.isSunsetActive = false;
     this.sunsetOverlay = null;
     this.sunsetParticles = null;
+    this.cinematicBacLamOriginalPosition = null;
     this.nearestInteractable = null;
     this.autoSaveTimer = 0;
     // 1. Initialize systems from SaveManager
@@ -90,6 +93,7 @@ export class TanCuongScene extends Phaser.Scene {
     if (this.input.keyboard) {
       this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
       this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      this.escapeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     }
 
     // 8. Bind touch / mobile controls
@@ -664,6 +668,11 @@ export class TanCuongScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.player) return;
 
+    if (this.isSunsetActive && Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
+      UIManager.getInstance().closeDialogue();
+      this.closeSunsetCinematic();
+    }
+
     // Update patrol for ambient workers
     this.ambientWorkers.forEach(worker => {
       if (worker.patrol) {
@@ -809,7 +818,18 @@ export class TanCuongScene extends Phaser.Scene {
         const worker: IAmbientWorker = closestInteractable.target;
         UIManager.getInstance().showPrompt(`Nhấn [E] để trò chuyện với ${worker.name}`);
       } else if (closestInteractable.type === 'pavilion') {
-        UIManager.getInstance().showPrompt('Nhấn [E] để ngồi thưởng trà Tân Cương');
+        const quest = QuestManager.getInstance().getQuest('quest_tan_cuong');
+        const processed = quest?.objectives.find(o => o.id === 'obj_process_tea')?.completed || quest?.status === 'completed';
+        const brewing = QuestManager.getInstance().getQuest('quest_first_tea');
+        if (processed && brewing?.status === 'active') {
+          UIManager.getInstance().showPrompt('Hiên thưởng trà · Nhấn [E] để pha trà cùng Bác Lâm');
+        } else if (processed && brewing?.status === 'locked') {
+          UIManager.getInstance().showPrompt('Hiên thưởng trà · Nhấn [E] để bắt đầu bài học pha trà');
+        } else if (processed && brewing?.status === 'completed') {
+          UIManager.getInstance().showPrompt('Hiên thưởng trà · Nhấn [E] để thử pha trà tự do');
+        } else {
+          UIManager.getInstance().showPrompt('Nhấn [E] để ngồi thưởng trà Tân Cương');
+        }
       } else if (closestInteractable.type === 'workshop') {
         UIManager.getInstance().showPrompt('Nhà sao chè · Nhấn [E] để vào tham quan');
       } else if (closestInteractable.type === 'nursery') {
@@ -849,7 +869,7 @@ export class TanCuongScene extends Phaser.Scene {
       const worker: IAmbientWorker = this.nearestInteractable.target;
       UIManager.getInstance().showToast(`💬 ${worker.name} (${worker.role}): "${worker.quote}"`);
     } else if (this.nearestInteractable.type === 'pavilion') {
-      this.sitAtPavilion();
+      this.handlePavilionInteraction();
     } else if (this.nearestInteractable.type === 'workshop') {
       this.enterTeaHouse();
     } else if (this.nearestInteractable.type === 'nursery') {
@@ -858,6 +878,66 @@ export class TanCuongScene extends Phaser.Scene {
     } else if (this.nearestInteractable.type === 'bush') {
       this.handleTeaBushInteraction();
     }
+  }
+
+  private ensureFinishedTea() {
+    if (!InventoryManager.getInstance().hasItem('tea_processed_tan_cuong')) {
+      InventoryManager.getInstance().addItem('tea_processed_tan_cuong', 1);
+    }
+  }
+
+  private startBrewingQuest() {
+    this.ensureFinishedTea();
+    const quest = QuestManager.getInstance().getQuest('quest_first_tea');
+    if (quest && quest.status !== 'completed' && quest.status !== 'active') {
+      QuestManager.getInstance().startQuest('quest_first_tea', false);
+    }
+    this.performAutoSave();
+  }
+
+  private handlePavilionInteraction() {
+    const chapter = QuestManager.getInstance().getQuest('quest_tan_cuong');
+    const processed = chapter?.objectives.find(o => o.id === 'obj_process_tea')?.completed || chapter?.status === 'completed';
+    if (!processed) {
+      this.sitAtPavilion();
+      return;
+    }
+
+    this.ensureFinishedTea();
+    const quest = QuestManager.getInstance().getQuest('quest_first_tea');
+    if (quest?.status === 'locked' || quest?.status === 'available' || !quest) {
+      UIManager.getInstance().startDialogue('bac_lam_brewing_intro', (action, payload) => this.handleDialogueAction(action, payload));
+      return;
+    }
+
+    const freeMode = quest.status === 'completed';
+    if (!freeMode) QuestManager.getInstance().completeObjective('quest_first_tea', 'obj_meet_bac_lam_pavilion');
+    UIManager.getInstance().openMiniGame('brewing', () => {
+      this.performAutoSave();
+      if (freeMode) {
+        UIManager.getInstance().showToast('Ấm trà mới đã sẵn sàng để thử nghiệm.');
+      } else {
+        UIManager.getInstance().showToast('Bạn và Bác Lâm đã cùng thưởng thức mẻ trà đầu tiên.');
+        this.beginSunsetEnding();
+      }
+    }, freeMode, () => this.performAutoSave());
+    this.performAutoSave();
+  }
+
+  private beginSunsetEnding() {
+    this.isPlayerSeated = true;
+    this.player.setControlActive(false);
+    this.player.setPosition(454, 151);
+    this.player.setVelocity(0, 0);
+    this.player.setDirection('right');
+    const bacLam = this.npcs.find(npc => npc.config.id === 'npc_bac_lam');
+    if (bacLam) {
+      this.cinematicBacLamOriginalPosition = { x: bacLam.x, y: bacLam.y };
+      bacLam.setPosition(506, 151);
+      bacLam.setDepth(151);
+      bacLam.body?.updateFromGameObject();
+    }
+    this.time.delayedCall(500, () => this.triggerSunsetCinematic());
   }
 
   private sitAtPavilion() {
@@ -954,8 +1034,8 @@ export class TanCuongScene extends Phaser.Scene {
 
     // 5. Show poetic dialogue with Bác Lâm
     this.time.delayedCall(1600, () => {
-      UIManager.getInstance().startDialogue('bac_lam_sunset_cinematic', () => {
-        this.closeSunsetCinematic();
+      UIManager.getInstance().startDialogue('bac_lam_sunset_cinematic', action => {
+        if (action === 'custom') this.closeSunsetCinematic();
       });
     });
   }
@@ -971,12 +1051,28 @@ export class TanCuongScene extends Phaser.Scene {
           this.sunsetParticles.destroy();
           this.sunsetParticles = null;
         }
+        if (this.cinematicBacLamOriginalPosition) {
+          const bacLam = this.npcs.find(npc => npc.config.id === 'npc_bac_lam');
+          if (bacLam) {
+            bacLam.setPosition(this.cinematicBacLamOriginalPosition.x, this.cinematicBacLamOriginalPosition.y);
+            bacLam.setDepth(bacLam.y);
+            bacLam.body?.updateFromGameObject();
+          }
+          this.cinematicBacLamOriginalPosition = null;
+        }
       }
     });
 
     this.standUpFromPavilion();
     UIManager.getInstance().showToast('🌅 Bạn vừa chiêm ngưỡng trọn vẹn cảnh sắc Hoàng Hôn Đồi Chè Tân Cương!');
     this.performAutoSave();
+    const cinematicSave = SaveManager.getInstance().load();
+    cinematicSave.passportStamps ||= {};
+    cinematicSave.passportStamps.tan_cuong_sunset_cinematic = true;
+    SaveManager.getInstance().save(cinematicSave);
+    this.time.delayedCall(1250, () => {
+      UIManager.getInstance().startDialogue('bac_lam_sunset_discovery', (action, payload) => this.handleDialogueAction(action, payload));
+    });
   }
 
   private handleWorkshopPractice() {
@@ -985,14 +1081,17 @@ export class TanCuongScene extends Phaser.Scene {
     const objProcess = quest?.objectives.find(o => o.id === 'obj_process_tea');
 
     if (objProcess?.completed || quest?.status === 'completed') {
+      this.ensureFinishedTea();
       UIManager.getInstance().openMiniGame('process', () => {
         UIManager.getInstance().showToast('🍃 Mẻ chè Tân Cương của bạn đã được sao thơm nồng hương cốm non!');
         this.performAutoSave();
       });
     } else if (objHarvest?.completed) {
       UIManager.getInstance().openMiniGame('process', () => {
+        this.ensureFinishedTea();
+        this.startBrewingQuest();
         this.performAutoSave();
-        UIManager.getInstance().showToast('🍵 Mẻ chè đã hoàn thành! Ra vườn gặp Bác Lâm để tiếp tục nhiệm vụ.');
+        UIManager.getInstance().showToast('🍵 Mẻ trà đã xong! Hãy tự đi tới Hiên thưởng trà để bắt đầu pha cùng Bác Lâm.');
       });
     } else {
       UIManager.getInstance().showToast('🍃 Bác Lâm dặn: Cần hái đủ 5 búp chè tươi đạt chuẩn "1 tôm 2 lá" trước khi nhóm lò sao chè nhé!');
@@ -1010,9 +1109,18 @@ export class TanCuongScene extends Phaser.Scene {
         const objHarvest = quest.objectives.find(o => o.id === 'obj_harvest_tea');
         const objProcess = quest.objectives.find(o => o.id === 'obj_process_tea');
         const objQuiz = quest.objectives.find(o => o.id === 'obj_quiz_tea');
+        const brewingQuest = QuestManager.getInstance().getQuest('quest_first_tea');
 
-        if (quest.status === 'completed') {
+        if (objProcess?.completed && (brewingQuest?.status === 'locked' || brewingQuest?.status === 'available')) {
+          this.ensureFinishedTea();
+          startNodeId = 'bac_lam_brewing_intro';
+        } else if (objProcess?.completed && brewingQuest?.status === 'active') {
+          this.ensureFinishedTea();
+          startNodeId = 'bac_lam_brewing_active';
+        } else if (quest.status === 'completed') {
           startNodeId = 'bac_lam_after_quest';
+        } else if (objProcess?.completed && brewingQuest?.status === 'completed' && !objQuiz?.completed) {
+          startNodeId = 'bac_lam_brewing_complete';
         } else if (objQuiz?.completed) {
           startNodeId = 'bac_lam_quest_complete';
         } else if (objProcess?.completed) {
@@ -1067,10 +1175,21 @@ export class TanCuongScene extends Phaser.Scene {
         });
       } else if (payload === 'triggerSunset') {
         UIManager.getInstance().closeDialogue();
-        this.sitAtPavilion();
-        this.time.delayedCall(700, () => {
-          this.triggerSunsetCinematic();
-        });
+        this.beginSunsetEnding();
+      } else if (payload === 'startBrewingQuest') {
+        UIManager.getInstance().closeDialogue();
+        this.startBrewingQuest();
+        UIManager.getInstance().showToast('🍵 Mẻ trà đã sẵn sàng. Hãy tự đi tới Hiên thưởng trà để gặp Bác Lâm.');
+      } else if (payload === 'startBrewingTemperatureLesson') {
+        this.startBrewingQuest();
+        window.setTimeout(() => UIManager.getInstance().startDialogue('bac_lam_brewing_temperature'), 0);
+      } else if (payload === 'inspectFinishedTea') {
+        UIManager.getInstance().closeDialogue();
+        this.startBrewingQuest();
+        UIManager.getInstance().openInventory();
+      } else if (payload === 'openTeaDiscoveryCard') {
+        UIManager.getInstance().closeDialogue();
+        UIManager.getInstance().openDestinationCard('tan_cuong', 'Trải Nghiệm Văn Hóa Trà Tân Cương Ngoài Đời Thực');
       }
     } else if (action === 'openMinigame') {
       if (payload === 'harvest') {
@@ -1144,6 +1263,18 @@ export class TanCuongScene extends Phaser.Scene {
     currentSave.quests = QuestManager.getInstance().getAllQuests();
     currentSave.completedQuestIds = QuestManager.getInstance().getCompletedQuestIds();
     currentSave.activeQuestId = QuestManager.getInstance().getActiveQuest()?.id || null;
+    if (QuestManager.getInstance().isQuestCompleted('quest_first_tea')) {
+      currentSave.achievements ||= {};
+      currentSave.achievements.ach_tea_brewing_apprentice = true;
+      currentSave.passportStamps ||= {};
+      currentSave.passportStamps.tan_cuong_brewing_tutorial = true;
+      currentSave.passportStamps.tan_cuong_first_batch_brewed = true;
+      currentSave.passportStamps.tan_cuong_tasting_completed = true;
+      currentSave.passportStamps.tan_cuong_brewing_achievement = true;
+      if (QuestManager.getInstance().isQuestCompleted('quest_tan_cuong')) {
+        currentSave.passportStamps.tan_cuong = true;
+      }
+    }
 
     SaveManager.getInstance().save(currentSave);
   }

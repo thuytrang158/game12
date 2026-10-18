@@ -68,6 +68,20 @@ export class SaveManager {
       // Safe migrations for newly added fields
       if (parsed.coins === undefined) parsed.coins = 120;
       if (!parsed.passportStamps) parsed.passportStamps = {};
+      if (!Array.isArray(parsed.teaBrewingHistory)) parsed.teaBrewingHistory = [];
+      if (!Array.isArray(parsed.favoriteTeaRecipes)) parsed.favoriteTeaRecipes = [];
+      if (parsed.teaBrewingSession && typeof parsed.teaBrewingSession !== 'object') delete parsed.teaBrewingSession;
+      parsed.quests ||= {};
+      // Add newly introduced quests to existing v1 saves without resetting old progress.
+      for (const [questId, quest] of Object.entries(INITIAL_QUESTS)) {
+        if (!parsed.quests[questId]) parsed.quests[questId] = JSON.parse(JSON.stringify(quest));
+      }
+      parsed.achievements ||= {};
+      for (const [achievementId, achievement] of Object.entries(ACHIEVEMENTS)) {
+        if (parsed.achievements[achievementId] === undefined) {
+          parsed.achievements[achievementId] = achievement.unlocked;
+        }
+      }
       return parsed;
     } catch (e) {
       console.warn('Failed to load save data, resetting to default', e);

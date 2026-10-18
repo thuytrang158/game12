@@ -57,12 +57,12 @@ export class QuestManager {
     return this.completedQuestIds.includes(questId);
   }
 
-  public startQuest(questId: string): boolean {
+  public startQuest(questId: string, makeActive: boolean = true): boolean {
     const quest = this.quests[questId];
     if (!quest || quest.status === 'completed') return false;
 
     quest.status = 'active';
-    this.activeQuestId = questId;
+    if (makeActive) this.activeQuestId = questId;
     this.notify('quest_started', quest);
     return true;
   }

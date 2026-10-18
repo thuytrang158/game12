@@ -202,6 +202,67 @@ export const DIALOGUE_NODES: Record<string, IDialogueNode> = {
     ]
   },
 
+  bac_lam_brewing_intro: {
+    id: 'bac_lam_brewing_intro',
+    speaker: 'Bác Lâm',
+    speakerRole: 'Nghệ nhân chè Tân Cương',
+    speakerAvatar: '👨‍🌾',
+    text: 'Cháu đã tự tay hái chè, rồi học cách sao chè. Nhưng hành trình của một búp chè chưa dừng lại ở đó đâu!',
+    choices: [
+      { text: 'Còn điều gì nữa ạ?', nextDialogueId: 'bac_lam_brewing_explain' }
+    ]
+  },
+
+  bac_lam_brewing_explain: {
+    id: 'bac_lam_brewing_explain',
+    speaker: 'Bác Lâm',
+    speakerRole: 'Nghệ nhân chè Tân Cương',
+    speakerAvatar: '👨‍🌾',
+    text: 'Đó là pha trà và thưởng trà. Cùng một loại trà, nhưng cách pha khác nhau có thể tạo nên những trải nghiệm hương vị rất khác nhau. Mời cháu tới Hiên thưởng trà; bác sẽ cùng cháu tự tay pha một ấm.',
+    choices: [
+      { text: 'Bác dạy cháu cách pha trà nhé!', action: 'custom', customPayload: 'startBrewingQuest' },
+      { text: 'Vì sao nhiệt độ nước lại quan trọng ạ?', action: 'custom', customPayload: 'startBrewingTemperatureLesson' },
+      { text: 'Cháu muốn xem thành phẩm chè vừa sao.', action: 'custom', customPayload: 'inspectFinishedTea' },
+      { text: 'Cháu sẽ quay lại sau.', action: 'close' }
+    ]
+  },
+
+  bac_lam_brewing_temperature: {
+    id: 'bac_lam_brewing_temperature',
+    speaker: 'Bác Lâm',
+    speakerRole: 'Nghệ nhân chè Tân Cương',
+    speakerAvatar: '👨‍🌾',
+    text: 'Nhiệt độ có thể làm thay đổi tốc độ chiết xuất và cách hương vị thể hiện. Còn tùy mẻ trà, lượng lá và thời gian hãm nữa. Ở hiên, bác sẽ chỉ cháu một khoảng tham khảo để mình bắt đầu thử nhé.',
+    choices: [
+      { text: 'Dạ, cháu sẽ tới Hiên thưởng trà gặp Bác.', action: 'close' }
+    ]
+  },
+
+  bac_lam_brewing_active: {
+    id: 'bac_lam_brewing_active',
+    speaker: 'Bác Lâm',
+    speakerRole: 'Nghệ nhân chè Tân Cương',
+    speakerAvatar: '👨‍🌾',
+    text: 'Mẻ trà của cháu đã sẵn sàng. Cháu cứ tự đi tới Hiên thưởng trà nhé; ở đó bác sẽ cùng cháu tìm hiểu bộ ấm chén và tự tay pha thử.',
+    choices: [
+      { text: 'Cháu tới hiên trà ngay đây ạ.', action: 'close' },
+      { text: 'Cháu muốn xem lại mẻ trà đã sao.', action: 'custom', customPayload: 'inspectFinishedTea' }
+    ]
+  },
+
+  bac_lam_brewing_complete: {
+    id: 'bac_lam_brewing_complete',
+    speaker: 'Bác Lâm',
+    speakerRole: 'Nghệ nhân chè Tân Cương',
+    speakerAvatar: '👨‍🌾',
+    text: 'Cháu đã có chén trà đầu tiên của riêng mình rồi. Mỗi lần thử một cách pha khác, cháu sẽ lại có thêm điều để cảm nhận.',
+    choices: [
+      { text: 'Cháu muốn thử câu đố văn hóa trà.', action: 'openQuiz' },
+      { text: 'Cháu muốn ngắm lại hoàng hôn ở hiên trà.', action: 'custom', customPayload: 'triggerSunset' },
+      { text: 'Cháu sẽ quay lại sau.', action: 'close' }
+    ]
+  },
+
   bac_lam_quest_complete: {
     id: 'bac_lam_quest_complete',
     speaker: 'Bác Lâm',
@@ -250,12 +311,35 @@ export const DIALOGUE_NODES: Record<string, IDialogueNode> = {
     speaker: 'Bác Lâm',
     speakerRole: 'Nghệ nhân chè Tân Cương',
     speakerAvatar: '👨‍🌾',
-    text: 'Nhìn những đồi chè kia xem cháu. Mỗi búp chè là bao công sức của người trồng. Chỉ khi tự tay làm từng công đoạn, mình mới hiểu hết giá trị của chén trà.',
+    text: 'Thế là cháu đã đi hết một hành trình của búp chè rồi đấy. Từ lúc chọn giống, chăm cây, hái búp, sao chè cho đến khi pha được một ấm trà.',
+    nextId: 'bac_lam_sunset_player'
+  },
+
+  bac_lam_sunset_player: {
+    id: 'bac_lam_sunset_player', speaker: 'Bạn', speakerRole: 'Nhà khám phá', speakerAvatar: '🧑‍🌾',
+    text: 'Giờ cháu mới hiểu để có một chén trà cần nhiều công sức đến vậy.',
+    nextId: 'bac_lam_sunset_story'
+  },
+
+  bac_lam_sunset_story: {
+    id: 'bac_lam_sunset_story', speaker: 'Bác Lâm', speakerRole: 'Nghệ nhân chè Tân Cương', speakerAvatar: '👨‍🌾',
+    text: 'Ừ, mỗi chén trà đều có câu chuyện của đất, của người, và của cả những mùa nắng mưa.',
+    nextId: 'bac_lam_sunset_reflection'
+  },
+
+  bac_lam_sunset_reflection: {
+    id: 'bac_lam_sunset_reflection', speaker: 'Bác Lâm', speakerRole: 'Nghệ nhân chè Tân Cương', speakerAvatar: '👨‍🌾',
+    text: 'Thưởng trà cũng là một cách để mình sống chậm lại và cảm nhận những điều bình dị quanh mình.',
+    choices: [{ text: 'Hành trình Hương Trà Tân Cương đã hoàn thành.', action: 'custom', customPayload: 'finishSunsetCinematic' }]
+  },
+
+  bac_lam_sunset_discovery: {
+    id: 'bac_lam_sunset_discovery', speaker: 'Bác Lâm', speakerRole: 'Nghệ nhân chè Tân Cương', speakerAvatar: '👨‍🌾',
+    text: 'Nếu có dịp tới Tân Cương ngoài đời thực, cháu có thể tìm hiểu thêm về nương chè và những trải nghiệm văn hóa trà. Còn bây giờ, con đường phía trước vẫn đang chờ cháu.',
     choices: [
-      {
-        text: 'Trà Tân Cương quả thực là đệ nhất danh trà! [Tiếp tục hành trình ▶]',
-        action: 'close'
-      }
+      { text: 'Khám phá văn hóa trà Tân Cương ngoài đời thực.', action: 'custom', customPayload: 'openTeaDiscoveryCard' },
+      { text: 'Tiếp tục phiêu lưu.', action: 'close' },
+      { text: 'Ngắm lại hoàng hôn.', action: 'custom', customPayload: 'triggerSunset' }
     ]
   },
 

@@ -1,6 +1,7 @@
-import { IItem, IQuest, IDialogueNode, IDialogueChoice, IDestination } from '../types/game';
+import { IItem, IQuest, IDialogueNode, IDialogueChoice, IDestination, IFavoriteTeaRecipe, ITeaBrewingSessionState } from '../types/game';
 import { QuestManager } from '../systems/QuestManager';
 import { InventoryManager } from '../systems/InventoryManager';
+import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import { TourismApiAdapter } from '../integrations/tourismApi';
 import { DESTINATIONS } from '../data/destinations';
@@ -8,6 +9,7 @@ import { INITIAL_ITEMS } from '../data/items';
 import { DIALOGUE_NODES } from '../data/dialogues';
 import { TeaHarvestMinigame } from '../minigames/TeaHarvestMinigame';
 import { TeaProcessingMinigame } from '../minigames/TeaProcessingMinigame';
+import { TeaBrewingMinigame } from '../minigames/TeaBrewingMinigame';
 import { CulturalQuizModal } from '../minigames/CulturalQuizModal';
 import { LakeLegendMinigame } from '../minigames/LakeLegendMinigame';
 import { HistoricalTimelineMinigame } from '../minigames/HistoricalTimelineMinigame';
@@ -89,6 +91,9 @@ export class UIManager {
 
     document.getElementById('dest-btn-explore-more')?.addEventListener('click', () => {
       TourismApiAdapter.getInstance().onExploreDestination('tan_cuong');
+    });
+    document.getElementById('dest-btn-view-tours')?.addEventListener('click', () => {
+      document.querySelector('.dest-tours-section')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     });
 
     // Keyboard shortcuts
@@ -530,6 +535,20 @@ export class UIManager {
         ` : ''}
       </div>
     `;
+
+    if (item.id === 'tea_processed_tan_cuong') {
+      const quest = QuestManager.getInstance().getQuest('quest_first_tea');
+      const inspectObjective = quest?.objectives.find(o => o.id === 'obj_inspect_finished_tea');
+      if (quest?.status === 'active' && inspectObjective && !inspectObjective.completed) {
+        QuestManager.getInstance().completeObjective('quest_first_tea', 'obj_inspect_finished_tea');
+        const save = SaveManager.getInstance().load();
+        save.inventory = InventoryManager.getInstance().getItems();
+        save.quests = QuestManager.getInstance().getAllQuests();
+        save.completedQuestIds = QuestManager.getInstance().getCompletedQuestIds();
+        save.activeQuestId = QuestManager.getInstance().getActiveQuest()?.id || null;
+        SaveManager.getInstance().save(save);
+      }
+    }
   }
 
   public openWorldMap() {
@@ -633,7 +652,7 @@ export class UIManager {
     }
   }
 
-  public openDestinationCard(destId: string) {
+  public openDestinationCard(destId: string, titleOverride?: string) {
     const dest = DESTINATIONS[destId];
     if (!dest) return;
 
@@ -643,7 +662,7 @@ export class UIManager {
     const descEl = document.getElementById('dest-card-desc');
     const toursListEl = document.getElementById('dest-tours-list');
 
-    if (titleEl) titleEl.textContent = `Khám Phá: ${dest.vietnameseTitle}`;
+    if (titleEl) titleEl.textContent = titleOverride || `Khám Phá: ${dest.vietnameseTitle}`;
     if (descEl) descEl.textContent = `${dest.realWorldInfo.culturalFact} ${dest.realWorldInfo.bestTimeToVisit}.`;
 
     if (toursListEl) {
@@ -677,7 +696,7 @@ export class UIManager {
   }
 
   // === Mini-game Host ===
-  public openMiniGame(type: 'harvest' | 'process' | 'quiz' | 'lake_legend' | 'atk_timeline' | 'cave_light' | 'river_crossing', onFinish: () => void) {
+  public openMiniGame(type: 'harvest' | 'process' | 'quiz' | 'lake_legend' | 'atk_timeline' | 'cave_light' | 'river_crossing' | 'brewing', onFinish: () => void, freeMode = false, onProgress: () => void = () => undefined) {
     this.closeAllModals();
 
     const titleEl = document.getElementById('minigame-title');
@@ -703,6 +722,35 @@ export class UIManager {
         onFinish();
       });
 
+      game.start();
+      this.activeMinigame = game;
+    } else if (type === 'brewing') {
+      if (titleEl) titleEl.textContent = 'Nghệ Thuật Pha Trà – Hương Vị Xứ Trà';
+      if (iconEl) iconEl.textContent = '🫖';
+      const savedData = SaveManager.getInstance().load();
+      const saveSession = (session: ITeaBrewingSessionState | null, completedSession?: ITeaBrewingSessionState) => {
+        const save = SaveManager.getInstance().load();
+        if (session) save.teaBrewingSession = session;
+        else delete save.teaBrewingSession;
+        if (completedSession) {
+          save.teaBrewingHistory ||= [];
+          save.teaBrewingHistory.push(completedSession);
+          save.teaBrewingHistory = save.teaBrewingHistory.slice(-20);
+        }
+        SaveManager.getInstance().save(save);
+      };
+      const saveFavorite = (recipe: IFavoriteTeaRecipe) => {
+        const save = SaveManager.getInstance().load();
+        save.favoriteTeaRecipes ||= [];
+        save.favoriteTeaRecipes.push(recipe);
+        save.favoriteTeaRecipes = save.favoriteTeaRecipes.slice(-20);
+        SaveManager.getInstance().save(save);
+        this.showToast(`Đã lưu ${recipe.name} vào công thức yêu thích.`);
+      };
+      const game = new TeaBrewingMinigame(bodyEl, () => {
+        this.closeAllModals();
+        onFinish();
+      }, freeMode, onProgress, saveSession, savedData.teaBrewingSession, savedData.favoriteTeaRecipes || [], saveFavorite);
       game.start();
       this.activeMinigame = game;
     } else if (type === 'quiz') {
