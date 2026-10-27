@@ -1,6 +1,44 @@
 import { IDialogueNode } from '../types/game';
 
 export const DIALOGUE_NODES: Record<string, IDialogueNode> = {
+  // === Đền Đuổm — tuyến tham quan và thẻ diễn giải ===
+  den_duom_guide_intro: {
+    id: 'den_duom_guide_intro', speaker: 'Tình nguyện viên', speakerRole: 'Hướng dẫn tham quan', speakerAvatar: '🧑‍🌾',
+    text: 'Chào bạn, mời bạn ghé Đền Đuổm. Mình đang hoàn thiện Sổ tay khám phá về Dương Tự Minh, các khu thờ và hội xuân. Đây là bản tham quan cách điệu trong game; bạn có thể theo tuyến gợi ý hoặc tự do dạo quanh.',
+    choices: [
+      { text: 'Bắt đầu theo dấu hội xuân', nextDialogueId: 'den_duom_guide_start' },
+      { text: 'Tôi muốn tham quan tự do trước', nextDialogueId: 'den_duom_guide_free' }
+    ]
+  },
+  den_duom_guide_start: {
+    id: 'den_duom_guide_start', speaker: 'Tình nguyện viên', speakerRole: 'Hướng dẫn tham quan', speakerAvatar: '🧑‍🌾',
+    text: 'Bạn hãy ghé bia giới thiệu, tìm hiểu Đền Trung và xem thẻ về hội xuân. Sau đó trở lại sân sinh hoạt để hoàn thiện tờ giới thiệu. Bản đồ game là sơ đồ minh họa, không theo tỷ lệ thực địa.',
+    choices: [{ text: 'Mình bắt đầu nhé', action: 'close' }]
+  },
+  den_duom_guide_free: {
+    id: 'den_duom_guide_free', speaker: 'Tình nguyện viên', speakerRole: 'Hướng dẫn tham quan', speakerAvatar: '🧑‍🌾',
+    text: 'Bạn cứ thong thả tham quan. Khi sẵn sàng, hãy ghé các điểm có dấu thông tin; tiến độ được giữ riêng với việc hoàn thành nhiệm vụ.',
+    choices: [{ text: 'Cảm ơn bạn', action: 'close' }]
+  },
+  den_duom_card_person: {
+    id: 'den_duom_card_person', speaker: 'Sổ tay khám phá', speakerRole: 'Thẻ lịch sử · Dương Tự Minh', speakerAvatar: '📜',
+    text: 'Dương Tự Minh là nhân vật lịch sử gắn với phủ Phú Lương thời Lý, được tưởng niệm tại Đền Trung. Các tư liệu giới thiệu di tích ghi nhận vai trò của ông trong việc bảo vệ vùng biên cương phía bắc Đại Việt.',
+    choices: [{ text: 'Đã ghi vào sổ tay', action: 'close' }]
+  },
+  den_duom_card_site: {
+    id: 'den_duom_card_site', speaker: 'Sổ tay khám phá', speakerRole: 'Thẻ kiến trúc · Ba cấp thờ tự', speakerAvatar: '🏛️',
+    text: 'Theo thông tin của địa phương, Đền Hạ thờ hai công chúa Diên Bình và Thiều Dung; Đền Trung thờ Dương Tự Minh; Đền Thượng thờ thân mẫu ông. Bản đồ game sắp các công trình theo trục thấp lên cao để dễ khám phá.',
+    choices: [{ text: 'Đã ghi vào sổ tay', action: 'close' }]
+  },
+  den_duom_card_festival: {
+    id: 'den_duom_card_festival', speaker: 'Sổ tay khám phá', speakerRole: 'Thẻ văn hóa · Hội Đền Đuổm', speakerAvatar: '🎋',
+    text: 'Hội Đền Đuổm là sinh hoạt văn hóa đầu xuân gắn với di tích. Game dựng sân hội như một chế độ trải nghiệm cách điệu quanh năm; phần chơi không tái hiện nghi lễ và không đại diện lịch tổ chức ngoài đời.',
+    choices: [
+      { text: 'Đã ghi vào sổ tay', action: 'close' },
+      { text: 'Thử sức với trò tung còn', action: 'openMinigame', customPayload: 'den_duom_tung_con' }
+    ]
+  },
+
   // === Bác Lâm - Nghệ nhân trà Tân Cương ===
   bac_lam_intro: {
     id: 'bac_lam_intro',

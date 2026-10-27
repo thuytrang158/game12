@@ -59,6 +59,8 @@ export class RegionalExplorerGuide {
   };
 
   private createMarkers() {
+    // Đền Đuổm draws its small contextual seals beside the actual landmarks.
+    if (this.regionId === 'den_duom') return;
     this.stops.forEach((stop, index) => {
       const marker = this.scene.add.container(stop.x, stop.y - 34).setDepth(1000);
       const circle = this.scene.add.circle(0, 0, 10, this.visited.has(stop.id) ? 0x638b45 : 0xf4c978).setStrokeStyle(2, 0x1d3b2b);

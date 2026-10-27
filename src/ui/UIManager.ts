@@ -15,6 +15,7 @@ import { LakeLegendMinigame } from '../minigames/LakeLegendMinigame';
 import { HistoricalTimelineMinigame } from '../minigames/HistoricalTimelineMinigame';
 import { CaveLightMinigame } from '../minigames/CaveLightMinigame';
 import { RiverCrossingMinigame } from '../minigames/RiverCrossingMinigame';
+import { TungConMinigame } from '../minigames/TungConMinigame';
 import { ShopModal } from './ShopModal';
 import { getSceneKey, hasAllJourneyMemories, isRegionUnlocked, MEMORY_FRAGMENT_IDS } from '../systems/RegionRegistry';
 import { DestinationActivityId, DestinationActivityMinigame, DestinationExhibition } from '../minigames/DestinationActivityMinigame';
@@ -646,7 +647,7 @@ export class UIManager {
     if (!this.explorationGuideEl || this.explorationGuideRegionId !== data.regionId) {
       this.explorationGuideEl?.remove();
       this.explorationGuideEl = document.createElement('aside');
-      this.explorationGuideEl.className = 'regional-exploration-guide';
+      this.explorationGuideEl.className = `regional-exploration-guide ${data.regionId === 'den_duom' ? 'den-duom-guide' : ''}`;
       this.explorationGuideEl.setAttribute('aria-label', `Bản đồ khám phá ${data.title}`);
       document.body.appendChild(this.explorationGuideEl);
       this.explorationGuideRegionId = data.regionId;
@@ -654,9 +655,12 @@ export class UIManager {
     }
     const safeId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '');
     const width = 960, height = 720;
-    const stopPins = data.stops.map((stop, index) => `<button class="regional-guide-pin ${stop.visited ? 'visited' : ''} ${stop.highlighted ? 'next' : ''}" style="left:${Math.max(2, Math.min(98, stop.x / width * 100))}%;top:${Math.max(2, Math.min(98, stop.y / height * 100))}%" aria-label="${stop.visited ? 'Đã thăm' : 'Chưa thăm'}: ${stop.label}" ${stop.visited ? `data-fast-travel="${safeId(stop.id)}"` : 'disabled'}>${index + 1}</button>`).join('');
-    const rows = data.stops.map((stop, index) => `<li class="${stop.visited ? 'visited' : ''} ${stop.highlighted ? 'next' : ''}"><span>${stop.visited ? '✓' : stop.highlighted ? '●' : '○'} ${index + 1}. ${stop.label}</span>${stop.visited ? `<button data-fast-travel="${safeId(stop.id)}" aria-label="Đi nhanh tới ${stop.label}">Đi nhanh</button>` : '<small>Chưa thăm</small>'}</li>`).join('');
-    this.explorationGuideEl.innerHTML = `<header><div><b>${data.title}</b><small>${data.subtitle}</small></div><button class="regional-guide-toggle" aria-expanded="${!this.explorationGuideCollapsed}">${this.explorationGuideCollapsed ? 'Mở bản đồ +' : 'Thu gọn −'}</button></header>${this.explorationGuideCollapsed ? '' : `<div class="regional-guide-schematic" role="img" aria-label="Sơ đồ tuyến minh họa, không theo tỷ lệ thực tế"><span class="regional-guide-player" style="left:${Math.max(1, Math.min(99, data.player.x / width * 100))}%;top:${Math.max(1, Math.min(99, data.player.y / height * 100))}%">Bạn</span>${stopPins}</div><div class="regional-guide-objective"><strong>Mục tiêu</strong><span>${data.objective}</span></div><ol>${rows}</ol><button class="regional-guide-info">Thông tin điểm đến</button>`}`;
+    const isDuom = data.regionId === 'den_duom';
+    const glyphs: Record<string, string> = { gate: '!', person: 'i', heritage: '✦', festival: '♪', courtyard: '◇', stamp: '✓' };
+    const stopPins = data.stops.map((stop, index) => `<button class="regional-guide-pin ${stop.visited ? 'visited' : ''} ${stop.highlighted ? 'next' : ''}" style="left:${Math.max(2, Math.min(98, stop.x / width * 100))}%;top:${Math.max(2, Math.min(98, stop.y / height * 100))}%" aria-label="${stop.visited ? 'Đã thăm' : 'Chưa thăm'}: ${stop.label}" ${stop.visited ? `data-fast-travel="${safeId(stop.id)}"` : 'disabled'}>${isDuom ? (stop.visited ? '✓' : glyphs[stop.id] || '•') : index + 1}</button>`).join('');
+    const rows = data.stops.map((stop, index) => `<li class="${stop.visited ? 'visited' : ''} ${stop.highlighted ? 'next' : ''}"><span>${stop.visited ? '✓' : stop.highlighted ? '●' : '○'} ${isDuom ? '' : `${index + 1}. `}${stop.label}</span>${stop.visited ? `<button data-fast-travel="${safeId(stop.id)}" aria-label="Đi nhanh tới ${stop.label}">Đi nhanh</button>` : '<small>Chưa thăm</small>'}</li>`).join('');
+    const listTag = isDuom ? 'ul' : 'ol';
+    this.explorationGuideEl.innerHTML = `<header><div><b>${data.title}</b><small>${data.subtitle}</small></div><button class="regional-guide-toggle" aria-expanded="${!this.explorationGuideCollapsed}">${this.explorationGuideCollapsed ? 'Mở bản đồ +' : 'Thu gọn −'}</button></header>${this.explorationGuideCollapsed ? '' : `<div class="regional-guide-schematic" role="img" aria-label="Sơ đồ tuyến minh họa, không theo tỷ lệ thực tế"><span class="regional-guide-player" style="left:${Math.max(1, Math.min(99, data.player.x / width * 100))}%;top:${Math.max(1, Math.min(99, data.player.y / height * 100))}%">Bạn</span>${stopPins}</div><div class="regional-guide-objective"><strong>Mục tiêu</strong><span>${data.objective}</span></div><${listTag}>${rows}</${listTag}><button class="regional-guide-info">Thông tin điểm đến</button>`}`;
     this.explorationGuideEl.classList.toggle('hidden', !data.visible);
     this.explorationGuideEl.classList.toggle('collapsed', this.explorationGuideCollapsed);
     this.explorationGuideEl.querySelector('.regional-guide-toggle')?.addEventListener('click', () => {
@@ -782,9 +786,32 @@ export class UIManager {
     const titleEl = document.getElementById('dest-card-title');
     const descEl = document.getElementById('dest-card-desc');
     const toursListEl = document.getElementById('dest-tours-list');
+    const heroBadge = document.getElementById('dest-hero-badge');
+    const exploreMoreButton = document.getElementById('dest-btn-explore-more');
 
     if (titleEl) titleEl.textContent = titleOverride || `Khám Phá: ${dest.vietnameseTitle}`;
     if (descEl) descEl.textContent = `${dest.realWorldInfo.culturalFact} ${dest.realWorldInfo.bestTimeToVisit}.`;
+    if (heroBadge) heroBadge.textContent = dest.category;
+    if (exploreMoreButton) exploreMoreButton.textContent = dest.id === 'den_duom' ? 'Tìm hiểu thêm về Đền Đuổm' : 'Khám Phá Tân Cương';
+
+    if (dest.id === 'den_duom') {
+      const cards = Array.from(document.querySelectorAll<HTMLElement>('.highlight-card'));
+      const highlights = [
+        { icon: '🏛️', title: 'Ba không gian thờ tự', copy: 'Đền Hạ thờ hai công chúa Diên Bình và Thiều Dung; Đền Trung gắn với Dương Tự Minh; Đền Thượng thờ thân mẫu ông.' },
+        { icon: '📜', title: 'Dương Tự Minh', copy: 'Di tích tưởng niệm danh tướng Dương Tự Minh, nhân vật lịch sử gắn với vùng đất Phú Lương.' },
+        { icon: '🎋', title: 'Hội xuân', copy: 'Lễ hội có hoạt động văn hóa và trò chơi dân gian. Phần hội trong game là minh họa, không phải lịch lễ hội thực tế.' }
+      ];
+      cards.forEach((card, index) => {
+        const item = highlights[index];
+        if (!item) return;
+        const icon = card.querySelector<HTMLElement>('.highlight-icon');
+        const heading = card.querySelector<HTMLElement>('[data-dest-highlight-title]');
+        const copy = card.querySelector<HTMLElement>('[data-dest-highlight-copy]');
+        if (icon) icon.textContent = item.icon;
+        if (heading) heading.textContent = item.title;
+        if (copy) copy.textContent = item.copy;
+      });
+    }
 
     if (toursListEl) {
       toursListEl.replaceChildren();
@@ -822,6 +849,23 @@ export class UIManager {
       onFinish();
     }, completedStages, exhibition);
     this.activeMinigame = game;
+    this.modalContainerEl.classList.remove('hidden');
+    this.minigameModalEl.classList.remove('hidden');
+  }
+
+  public openTungConMinigame(onFinish: (won: boolean) => void) {
+    this.closeDialogue();
+    this.closeAllModals();
+    const titleEl = document.getElementById('minigame-title');
+    const iconEl = document.getElementById('minigame-icon');
+    const bodyEl = document.getElementById('minigame-body');
+    if (!bodyEl) return;
+    if (titleEl) titleEl.textContent = 'Sân hội xuân · Tung còn';
+    if (iconEl) iconEl.textContent = '🎋';
+    this.activeMinigame = new TungConMinigame(bodyEl, won => {
+      this.closeAllModals();
+      onFinish(won);
+    });
     this.modalContainerEl.classList.remove('hidden');
     this.minigameModalEl.classList.remove('hidden');
   }

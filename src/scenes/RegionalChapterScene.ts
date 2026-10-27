@@ -39,7 +39,7 @@ export class RegionalChapterScene extends Phaser.Scene {
   create() {
     const save = initializeRegionSystems(this.config.regionId);
     const position = save.regionProgress?.[this.config.regionId]?.player;
-    this.player = new Player(this, position?.x ?? 480, position?.y ?? 560);
+    this.player = new Player(this, position?.x ?? 480, position?.y ?? (this.config.regionId === 'den_duom' ? 670 : 560));
     if (position?.dir) this.player.setDirection(position.dir);
     UIManager.getInstance().setHUDVisible(true);
     UIManager.getInstance().setRegionName(this.destination.name);
@@ -100,7 +100,7 @@ export class RegionalChapterScene extends Phaser.Scene {
 
   private createEnvironment() {
     this.physics.world.setBounds(0, 0, this.width, this.height);
-    const baseFrame = this.config.regionId === 'bao_tang_van_hoa' ? 7 : this.config.regionId === 'den_duom' ? 2 : 0;
+    const baseFrame = this.config.regionId === 'bao_tang_van_hoa' ? 7 : 0;
     this.add.tileSprite(this.width / 2, this.height / 2, this.width, this.height, 'env_tileset', baseFrame).setDepth(-100);
     const walls = this.physics.add.staticGroup();
     const addWall = (x: number, y: number, w: number, h: number) => {
@@ -117,17 +117,7 @@ export class RegionalChapterScene extends Phaser.Scene {
       addWall(480, 275, 135, 42); addWall(215, 468, 90, 35);
       this.add.text(480, 332, 'NHÀ SÀN ĐÓN KHÁCH · TÌNH HUỐNG HƯ CẤU', { fontSize: '13px', color: '#fff2d5', backgroundColor: '#1d3b2b', padding: { x: 7, y: 4 } }).setOrigin(0.5).setDepth(600);
     } else if (this.config.regionId === 'den_duom') {
-      const shrine = this.add.graphics().setDepth(300);
-      shrine.fillStyle(0x5e432c); shrine.fillRect(414, 248, 132, 88);
-      shrine.fillStyle(0xa98953); shrine.fillTriangle(392, 250, 480, 188, 568, 250);
-      shrine.fillStyle(0x7e5b35); shrine.fillTriangle(380, 245, 480, 202, 580, 245);
-      shrine.fillStyle(0x725439); shrine.fillRect(400, 333, 160, 14);
-      this.add.text(480, 363, 'KHU DIỄN GIẢI · KHÔNG MÔ PHỎNG NGHI LỄ', { fontSize: '12px', color: '#fff2d5', backgroundColor: '#1d3b2b', padding: { x: 7, y: 4 } }).setOrigin(0.5).setDepth(600);
-      this.add.image(165, 240, 'tea_bush').setScale(2.5).setDepth(240);
-      this.add.image(800, 245, 'tea_bush').setScale(2.5).setDepth(245);
-      addWall(480, 330, 125, 35);
-      const yard = this.add.graphics().setDepth(-40); yard.lineStyle(4, 0xc8b37b, 1); yard.strokeRect(620, 430, 250, 185);
-      this.add.text(745, 630, 'SÂN SINH HOẠT CỘNG ĐỒNG', { fontSize: '11px', color: '#fff2d5', backgroundColor: '#1d3b2b', padding: { x: 6, y: 4 } }).setOrigin(0.5);
+      this.createDenDuomEnvironment(addWall);
     } else {
       const back = this.add.graphics().setDepth(-50); back.fillStyle(0xe4dfc8); back.fillRect(70, 70, 820, 580);
       for (let y = 122; y <= 595; y += 118) {
@@ -146,7 +136,186 @@ export class RegionalChapterScene extends Phaser.Scene {
     this.add.text(480, 32, this.destination.name.toUpperCase(), { fontSize: '18px', color: '#f4c978', fontStyle: 'bold', backgroundColor: '#1d3b2b', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(900);
   }
 
+  /** A stylized visitor map based on the documented three-level shrine complex. */
+  private createDenDuomEnvironment(addWall: (x: number, y: number, w: number, h: number) => void) {
+    const terrain = this.add.graphics().setDepth(-80);
+    // Mossy foothills frame the heritage grounds and echo the Duom mountain ridge.
+    terrain.fillStyle(0x6f9660, 1);
+    terrain.fillPoints([new Phaser.Geom.Point(0, 0), new Phaser.Geom.Point(960, 0), new Phaser.Geom.Point(960, 186), new Phaser.Geom.Point(820, 160), new Phaser.Geom.Point(690, 190), new Phaser.Geom.Point(550, 145), new Phaser.Geom.Point(390, 185), new Phaser.Geom.Point(240, 150), new Phaser.Geom.Point(0, 200)], true);
+    terrain.fillStyle(0x587d52, 1);
+    terrain.fillPoints([new Phaser.Geom.Point(0, 0), new Phaser.Geom.Point(330, 0), new Phaser.Geom.Point(270, 116), new Phaser.Geom.Point(164, 163), new Phaser.Geom.Point(64, 120)], true);
+    terrain.fillPoints([new Phaser.Geom.Point(590, 0), new Phaser.Geom.Point(960, 0), new Phaser.Geom.Point(960, 136), new Phaser.Geom.Point(844, 176), new Phaser.Geom.Point(730, 112)], true);
+    terrain.fillStyle(0x3f6447, 1);
+    terrain.fillTriangle(92, 142, 186, 16, 283, 142);
+    terrain.fillTriangle(626, 137, 754, 8, 900, 145);
+    terrain.fillStyle(0x93ad6d, 0.9);
+    terrain.fillTriangle(145, 75, 186, 16, 224, 75);
+    terrain.fillTriangle(696, 66, 754, 8, 809, 66);
+
+    // Quiet green lawns with planted shade trees; the ritual grounds remain open.
+    const grove = this.add.graphics().setDepth(-30);
+    grove.fillStyle(0x345b43, 0.18);
+    grove.fillEllipse(183, 370, 138, 58);
+    grove.fillEllipse(850, 344, 124, 52);
+    this.drawDuomTree(132, 342, 1.1);
+    this.drawDuomTree(847, 340, 1.05);
+    this.drawDuomTree(242, 235, 0.78);
+    this.drawDuomTree(908, 246, 0.78);
+    this.drawDuomTree(85, 530, 0.8);
+    this.drawDuomTree(655, 208, 0.68);
+
+    // Stone walk from the tam-quan gate into the stepped shrine sequence.
+    const path = this.add.graphics().setDepth(-20);
+    path.fillStyle(0x9e9b81, 1);
+    path.fillPoints([new Phaser.Geom.Point(432, 720), new Phaser.Geom.Point(528, 720), new Phaser.Geom.Point(532, 602), new Phaser.Geom.Point(552, 526), new Phaser.Geom.Point(535, 450), new Phaser.Geom.Point(560, 374), new Phaser.Geom.Point(536, 274), new Phaser.Geom.Point(510, 204), new Phaser.Geom.Point(454, 204), new Phaser.Geom.Point(466, 284), new Phaser.Geom.Point(474, 373), new Phaser.Geom.Point(456, 450), new Phaser.Geom.Point(468, 526), new Phaser.Geom.Point(448, 600)], true);
+    path.fillStyle(0xc0b99b, 0.9);
+    for (let y = 636; y >= 248; y -= 27) {
+      const half = y > 475 ? 43 : y > 365 ? 34 : 25;
+      const x = y > 475 ? 480 : y > 365 ? 497 : 500;
+      path.lineStyle(2, 0x777b68, 0.52).lineBetween(x - half, y, x + half, y);
+      path.fillStyle(0xd4c9a8, 0.38).fillRect(x - half + 4, y + 3, half * 2 - 8, 3);
+      path.fillStyle(0xc0b99b, 0.9);
+    }
+    // Branch into the festival yard, visually distinct from the sacred approach.
+    path.fillStyle(0xa9a187, 1);
+    path.fillPoints([new Phaser.Geom.Point(520, 518), new Phaser.Geom.Point(587, 516), new Phaser.Geom.Point(666, 491), new Phaser.Geom.Point(729, 475), new Phaser.Geom.Point(741, 510), new Phaser.Geom.Point(677, 531), new Phaser.Geom.Point(590, 552), new Phaser.Geom.Point(519, 557)], true);
+    path.lineStyle(2, 0x747966, 0.48).lineBetween(551, 539, 725, 493);
+
+    // Tam quan visitor entrance: three bays, timber red posts, tiled roof and name plaque.
+    this.drawTamQuan();
+
+    // The lower, middle and upper shrines follow the historic stepped arrangement.
+    this.drawDuomShrine(326, 487, 146, 82, 'ĐỀN HẠ', 'PHỦ HAI CÔNG CHÚA', false);
+    this.drawDuomShrine(482, 354, 174, 100, 'ĐỀN TRUNG', 'THỜ DƯƠNG TỰ MINH', true);
+    this.drawDuomShrine(494, 213, 118, 70, 'ĐỀN THƯỢNG', 'THỜ THÂN MẪU', false);
+    // Two compact side halls make the lower shrine read as a pair of phủ.
+    this.drawDuomShrine(213, 489, 91, 57, 'PHỦ', '', false);
+    addWall(482, 397, 144, 23);
+    addWall(326, 519, 120, 20);
+    addWall(494, 239, 98, 18);
+
+    // A stone stela stands beside the main approach, not on top of a building.
+    const stele = this.add.graphics().setDepth(430);
+    stele.fillStyle(0x555b4b).fillEllipse(350, 451, 48, 12);
+    stele.fillStyle(0x777b68).fillRect(338, 397, 24, 50);
+    stele.fillStyle(0x9c9b7e).fillTriangle(336, 400, 350, 382, 364, 400);
+    stele.fillStyle(0xbdb99a).fillRect(342, 406, 2, 35);
+    stele.fillRect(350, 406, 2, 35);
+    stele.fillRect(358, 406, 2, 35);
+    stele.fillStyle(0x686d5c).fillRect(331, 447, 38, 7);
+
+    // The festival yard is an open, separate community space on the east branch.
+    const festival = this.add.graphics().setDepth(475);
+    festival.fillStyle(0x8d9271, 1).fillRoundedRect(705, 503, 196, 145, 16);
+    festival.lineStyle(4, 0xc9b77f, 0.9).strokeRoundedRect(705, 503, 196, 145, 16);
+    festival.lineStyle(2, 0xe0d2a8, 0.6);
+    for (let x = 724; x < 890; x += 25) festival.lineBetween(x, 516, x, 635);
+    for (let y = 523; y < 642; y += 24) festival.lineBetween(718, y, 889, y);
+    festival.fillStyle(0x6c4a35).fillRect(784, 516, 8, 112);
+    festival.fillStyle(0xa34c3d).fillTriangle(792, 520, 829, 528, 792, 538);
+    festival.fillStyle(0x355c46).fillTriangle(792, 540, 825, 548, 792, 558);
+    festival.fillStyle(0x6c4a35).fillRect(742, 553, 28, 16); // low festival drum
+    festival.fillStyle(0xd5b47b).fillRect(744, 551, 24, 4);
+    festival.fillStyle(0x6c4a35).fillRect(843, 553, 24, 14); // game booth/table
+    festival.fillStyle(0xcfa873).fillRect(841, 550, 28, 4);
+
+    // Small visitor cues, lanterns and courtyard edging add texture without crowds of labels.
+    this.drawStoneLantern(578, 450);
+    this.drawStoneLantern(449, 450);
+    this.drawStoneLantern(607, 300);
+    const fence = this.add.graphics().setDepth(455);
+    fence.lineStyle(4, 0x6b5940, 0.9);
+    fence.lineBetween(639, 518, 694, 508);
+    fence.lineBetween(642, 551, 700, 538);
+    for (let x = 644; x <= 690; x += 18) {
+      fence.fillStyle(0x725d40).fillRect(x, 511, 4, 43);
+    }
+  }
+
+  private drawDuomTree(x: number, y: number, scale: number) {
+    const tree = this.add.graphics().setDepth(y + 1);
+    tree.fillStyle(0x263f2e, 0.28).fillEllipse(x + 4 * scale, y + 9 * scale, 72 * scale, 26 * scale);
+    tree.fillStyle(0x594832).fillRect(x - 5 * scale, y - 2 * scale, 10 * scale, 35 * scale);
+    tree.fillStyle(0x47623d).fillCircle(x, y - 13 * scale, 29 * scale);
+    tree.fillStyle(0x5f7d49).fillCircle(x - 18 * scale, y - 18 * scale, 18 * scale);
+    tree.fillCircle(x + 17 * scale, y - 21 * scale, 19 * scale);
+    tree.fillStyle(0x78945a).fillCircle(x - 5 * scale, y - 31 * scale, 13 * scale);
+    tree.fillStyle(0x8ea66a, 0.8).fillRect(x - 20 * scale, y - 26 * scale, 7 * scale, 4 * scale);
+    tree.setDepth(y + 40);
+  }
+
+  private drawTamQuan() {
+    const gate = this.add.graphics().setDepth(635);
+    gate.fillStyle(0x303b2e, 0.25).fillEllipse(480, 652, 190, 28);
+    // Stone plinth and three open bays.
+    gate.fillStyle(0x817a64).fillRect(393, 608, 174, 17);
+    gate.fillStyle(0x9f967b).fillRect(386, 602, 188, 8);
+    gate.fillStyle(0x704333).fillRect(398, 548, 11, 62);
+    gate.fillRect(451, 541, 11, 69);
+    gate.fillRect(498, 541, 11, 69);
+    gate.fillRect(551, 548, 11, 62);
+    gate.fillStyle(0xa85a3d).fillRect(394, 540, 19, 9);
+    gate.fillRect(447, 533, 19, 9);
+    gate.fillRect(494, 533, 19, 9);
+    gate.fillRect(547, 540, 19, 9);
+    // Layered Vietnamese tiled roof with modest upturned corners.
+    gate.fillStyle(0x743c31).fillTriangle(380, 545, 480, 491, 580, 545);
+    gate.fillStyle(0xa34f3b).fillTriangle(389, 536, 480, 487, 571, 536);
+    gate.fillStyle(0x743c31).fillTriangle(370, 545, 389, 536, 395, 549);
+    gate.fillTriangle(571, 536, 590, 545, 565, 549);
+    gate.fillStyle(0x61382e).fillRect(390, 541, 180, 8);
+    gate.lineStyle(2, 0xc07850, 0.9);
+    for (let x = 407; x < 558; x += 12) gate.lineBetween(x, 533 + Math.abs(480 - x) * 0.52, x + 2, 541 + Math.abs(480 - x) * 0.52);
+    // The central bay carries a clear, small name plaque.
+    gate.fillStyle(0x5e382a).fillRect(441, 507, 78, 18);
+    gate.lineStyle(1, 0xd7b876).strokeRect(441, 507, 78, 18);
+    this.add.text(480, 516, 'ĐỀN ĐUỔM', { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: '#f8e4b4', fontStyle: 'bold', letterSpacing: 1 }).setOrigin(0.5).setDepth(636);
+  }
+
+  private drawDuomShrine(x: number, y: number, w: number, h: number, title: string, subtitle: string, central: boolean) {
+    const g = this.add.graphics().setDepth(y + h);
+    const half = w / 2;
+    const roofY = y - h * 0.4;
+    // Broad brick-and-stone steps.
+    g.fillStyle(0x47483d, 0.2).fillEllipse(x, y + h * 0.42, w + 34, 24);
+    g.fillStyle(0x756a52).fillRect(x - half - 12, y + h * 0.26, w + 24, 12);
+    g.fillStyle(0xa1987b).fillRect(x - half - 7, y + h * 0.16, w + 14, 9);
+    g.fillStyle(0xc0b28e).fillRect(x - half, y + h * 0.08, w, 7);
+    // Dark timber frame, visible open doorway, and red-brown posts.
+    g.fillStyle(0x4a3328).fillRect(x - half + 10, y - h * 0.04, w - 20, h * 0.34);
+    g.fillStyle(0xb18c62).fillRect(x - half + 17, y - h * 0.01, w - 34, h * 0.27);
+    g.fillStyle(0x4d382b).fillRect(x - 13, y + h * 0.02, 26, h * 0.29);
+    g.fillStyle(0x8f5238);
+    for (let px = x - half + 9; px <= x + half - 14; px += Math.max(20, w / 5)) g.fillRect(px, y - h * 0.05, 7, h * 0.33);
+    g.fillStyle(0x5f3a2c).fillRect(x - half + 5, y - h * 0.08, w - 10, 7);
+    // Two compact tiled roof layers and slightly lifted eaves.
+    g.fillStyle(0x67392e).fillTriangle(x - half - 20, roofY + 28, x, roofY - 12, x + half + 20, roofY + 28);
+    g.fillStyle(central ? 0xa94c38 : 0x98503b).fillTriangle(x - half - 13, roofY + 21, x, roofY - 15, x + half + 13, roofY + 21);
+    g.fillStyle(0x6e3a2f).fillRect(x - half - 17, roofY + 20, w + 34, 8);
+    g.fillStyle(0xc47b4e, 0.8).fillRect(x - half - 12, roofY + 22, w + 24, 2);
+    g.fillStyle(0x6b402d).fillTriangle(x - half - 22, roofY + 23, x - half - 8, roofY + 17, x - half - 13, roofY + 32);
+    g.fillTriangle(x + half + 22, roofY + 23, x + half + 8, roofY + 17, x + half + 13, roofY + 32);
+    // Quiet blank timber plaque: the place name appears in the contextual prompt nearby.
+    g.fillStyle(0x70503a).fillRect(x - 18, y - h * 0.03, 36, 7);
+    g.lineStyle(1, 0xc5a36c).strokeRect(x - 18, y - h * 0.03, 36, 7);
+  }
+
+  private drawStoneLantern(x: number, y: number) {
+    const g = this.add.graphics().setDepth(y + 2);
+    g.fillStyle(0x4d4738, 0.24).fillEllipse(x + 2, y + 15, 27, 9);
+    g.fillStyle(0x797560).fillRect(x - 10, y + 7, 20, 5);
+    g.fillStyle(0x89866e).fillRect(x - 7, y - 13, 14, 19);
+    g.fillStyle(0xd4ba7b, 0.8).fillRect(x - 4, y - 9, 8, 10);
+    g.fillStyle(0x6c6957).fillRect(x - 12, y - 17, 24, 5);
+    g.fillStyle(0x77735f).fillTriangle(x - 13, y - 17, x, y - 25, x + 13, y - 17);
+    g.fillStyle(0x6b6653).fillRect(x - 8, y - 25, 16, 3);
+  }
+
   private createStops() {
+    if (this.config.regionId === 'den_duom') {
+      this.createDenDuomStops();
+      return;
+    }
     this.config.stops.forEach((stop, index) => {
       const marker = this.add.container(stop.x, stop.y).setDepth(stop.y + 1).setSize(70, 76).setInteractive({ useHandCursor: true });
       const board = this.add.graphics();
@@ -164,8 +333,37 @@ export class RegionalChapterScene extends Phaser.Scene {
     });
   }
 
+  private createDenDuomStops() {
+    const glyphs: Record<string, string> = { gate: '!', person: 'i', heritage: '✦', festival: '♪', courtyard: '◇', stamp: '✓' };
+    this.config.stops.forEach(stop => {
+      // Compact, unnumbered interaction seals sit beside real landmarks; names are shown only nearby.
+      const marker = this.add.container(stop.x, stop.y).setDepth(stop.y + 8).setSize(54, 58).setInteractive({ useHandCursor: true });
+      const seal = this.add.graphics();
+      seal.fillStyle(0x273d2d, 0.24).fillEllipse(0, 15, 28, 10);
+      seal.fillStyle(stop.id === 'gate' ? 0x537a4c : 0x8a7045).fillCircle(0, 0, 11);
+      seal.lineStyle(2, 0xf0d28c).strokeCircle(0, 0, 11);
+      const glyph = this.add.text(0, 0, glyphs[stop.id] || '•', {
+        fontFamily: 'Arial, sans-serif', fontSize: stop.id === 'heritage' ? '12px' : '11px', color: '#fff2d5', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      marker.add([seal, glyph]);
+      marker.on('pointerdown', () => {
+        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, stop.x, stop.y);
+        if (distance > 115) UIManager.getInstance().showToast(`Hãy đến gần ${stop.label.toLowerCase()} để tìm hiểu.`);
+        else this.interactWithStop(stop);
+      });
+    });
+  }
+
   private createGuideCharacter() {
-    const x = 480, y = 520;
+    const x = this.config.regionId === 'den_duom' ? 430 : 480;
+    const y = this.config.regionId === 'den_duom' ? 574 : 520;
+    if (this.config.regionId === 'den_duom') {
+      const guide = this.add.sprite(x, y, 'npc_guide_sheet', 0).setScale(1.45).setDepth(y);
+      if (this.anims.exists('npc_guide_sheet_idle')) guide.play('npc_guide_sheet_idle');
+      this.add.circle(x + 13, y - 31, 8, 0xe0b75e).setStrokeStyle(2, 0xfff0bd).setDepth(y + 1);
+      this.add.text(x + 13, y - 31, '!', { fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#453522', fontStyle: 'bold' }).setOrigin(0.5).setDepth(y + 2);
+      return;
+    }
     const figure = this.add.container(x, y).setDepth(y);
     const body = this.add.ellipse(0, 12, 31, 38, 0x4e7659).setStrokeStyle(2, 0xffe2a2);
     const head = this.add.circle(0, -13, 12, 0xd7a77c).setStrokeStyle(2, 0x513c2c);
@@ -185,7 +383,7 @@ export class RegionalChapterScene extends Phaser.Scene {
       const cardStops: Record<string,string> = { person: 'dd_person_card', heritage: 'dd_site_card', festival: 'dd_festival_card' };
       if (stop.id === 'gate') {
         this.completeObjective('dd_meet_guide');
-        UIManager.getInstance().showToast('Tình nguyện viên đã giới thiệu ba điểm diễn giải trên sơ đồ minh họa.');
+        UIManager.getInstance().startDialogue('den_duom_guide_intro');
       }
       if (cardStops[stop.id]) {
         if (!quest.objectives.find(o => o.id === 'dd_meet_guide')?.completed) {
@@ -193,7 +391,11 @@ export class RegionalChapterScene extends Phaser.Scene {
         }
         const completed = this.markActivity(cardStops[stop.id]);
         if (completed) QuestManager.getInstance().incrementObjective('quest_den_duom', 'dd_collect_cards', 1);
-        this.showProgressToast('Đã đọc thẻ diễn giải. Việc ghé thăm và ghép thông tin được ghi nhận riêng.');
+        this.showProgressToast('Thẻ đã mở trong Sổ tay khám phá. Việc ghé thăm và ghép thông tin được ghi nhận riêng.');
+        const noteId: Record<string, string> = { person: 'den_duom_card_person', heritage: 'den_duom_card_site', festival: 'den_duom_card_festival' };
+        UIManager.getInstance().startDialogue(noteId[stop.id], action => {
+          if (action === 'openMinigame') this.openTungConGame();
+        });
       } else if (stop.id === 'leaflet' || stop.id === 'courtyard') this.openActivity();
       else if (stop.id === 'stamp') {
         if (quest.status === 'completed') {
@@ -263,6 +465,20 @@ export class RegionalChapterScene extends Phaser.Scene {
       this.awardIfComplete();
       UIManager.getInstance().showToast('Hoạt động đã ghi nhận. Bạn có thể tiếp tục khám phá các điểm còn lại.');
       UIManager.getInstance().updateHUDQuest();
+    });
+  }
+
+  private openTungConGame() {
+    UIManager.getInstance().openTungConMinigame(won => {
+      if (!won) return;
+      const firstWin = this.markActivity('den_duom_tung_con');
+      const save = SaveManager.getInstance().load();
+      save.passportStamps ||= {};
+      save.achievements ||= {};
+      save.passportStamps.den_duom_tung_con = true;
+      save.achievements.ach_den_duom_tung_con = true;
+      SaveManager.getInstance().save(save);
+      UIManager.getInstance().showToast(firstWin ? 'Bạn nhận dấu Hội xuân và huy hiệu Cao thủ tung còn!' : 'Dấu Hội xuân của bạn đã được lưu từ lần trước.');
     });
   }
 

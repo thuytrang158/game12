@@ -85,6 +85,13 @@ export const ACHIEVEMENTS: Record<string, IAchievement> = {
     icon: '🎋',
     unlocked: false
   },
+  ach_den_duom_tung_con: {
+    id: 'ach_den_duom_tung_con',
+    title: 'Cao thủ tung còn',
+    description: 'Ném trúng vòng còn ít nhất 3 lần trong 5 lượt tại sân hội xuân.',
+    icon: '🎯',
+    unlocked: false
+  },
   ach_museum_connector: {
     id: 'ach_museum_connector',
     title: 'Người kết nối di sản',
