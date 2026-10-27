@@ -1,6 +1,4 @@
 import { AudioManager } from '../systems/AudioManager';
-import { InventoryManager } from '../systems/InventoryManager';
-import { QuestManager } from '../systems/QuestManager';
 
 export type ShootType = 'perfect' | 'immature' | 'long_shoot' | 'overmature' | 'damaged';
 
@@ -54,7 +52,8 @@ export type MinigameMode = 'tutorial' | 'standard' | 'advanced';
 
 export class TeaHarvestMinigame {
   private containerEl: HTMLElement;
-  private onCompleteCallback?: () => void;
+  private onCompleteCallback?: (outcome: { harvested: number; bonusCoins: number }) => void;
+  private pendingBonusCoins = 0;
 
   private currentMode: MinigameMode = 'tutorial';
   private shoots: ITeaShoot[] = [];
@@ -87,7 +86,7 @@ export class TeaHarvestMinigame {
     speaker: 'Bác Lâm'
   };
 
-  constructor(containerEl: HTMLElement, onComplete?: () => void) {
+  constructor(containerEl: HTMLElement, onComplete?: (outcome: { harvested: number; bonusCoins: number }) => void) {
     this.containerEl = containerEl;
     this.onCompleteCallback = onComplete;
   }
@@ -95,6 +94,7 @@ export class TeaHarvestMinigame {
   public start() {
     this.currentMode = 'tutorial';
     this.harvestedCount = 0;
+    this.pendingBonusCoins = 0;
     this.inspectCount = 0;
     this.mistakeCount = 0;
     this.correctShootSelections = 0;
@@ -1382,13 +1382,9 @@ export class TeaHarvestMinigame {
       this.stopTimer();
       AudioManager.getInstance().playFanfare();
 
-      // Persist inventory and quest progress
-      InventoryManager.getInstance().addItem('tea_buds_fresh', 5);
-      QuestManager.getInstance().incrementObjective('quest_tan_cuong', 'obj_harvest_tea', 5);
-
       // Reward bonus coins based on accuracy
       const bonusCoins = this.mistakeCount === 0 ? 25 : (this.mistakeCount <= 2 ? 20 : 15);
-      InventoryManager.getInstance().addCoins(bonusCoins);
+      this.pendingBonusCoins = bonusCoins;
 
       this.renderScorecard(bonusCoins);
     } else {
@@ -1523,7 +1519,7 @@ export class TeaHarvestMinigame {
     if (finishBtn) {
       finishBtn.addEventListener('click', () => {
         if (this.onCompleteCallback) {
-          this.onCompleteCallback();
+          this.onCompleteCallback({ harvested: this.harvestedCount, bonusCoins: this.pendingBonusCoins });
         }
       });
     }

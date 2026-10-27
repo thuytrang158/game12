@@ -1,73 +1,29 @@
 import { AudioManager } from '../systems/AudioManager';
-import { InventoryManager } from '../systems/InventoryManager';
-import { QuestManager } from '../systems/QuestManager';
 
+/** Matching activity reports a validated answer; quest rewards stay in the progression layer. */
 export class HistoricalTimelineMinigame {
-  private containerEl!: HTMLElement;
-  private onCompleteCallback?: () => void;
-
-  constructor(containerEl: HTMLElement, onComplete?: () => void) {
-    this.containerEl = containerEl;
-    this.onCompleteCallback = onComplete;
-  }
+  private matches = ['', '', ''];
+  constructor(private containerEl: HTMLElement, private onCompleteCallback?: () => void) {}
 
   public start() {
     this.render();
   }
 
-  private render() {
-    this.containerEl.innerHTML = `
-      <div class="atk-game-wrapper">
-        <div class="minigame-header-info">
-          <div class="info-pill">
-            <span class="info-icon">⭐</span>
-            <span>Di Tích Lịch Sử: <strong>Thủ Đô Gió Ngàn ATK</strong></span>
-          </div>
-          <div class="harvest-hint">
-            💡 Ghép nối chính xác các mốc thời gian hào hùng của chiến khu cách mạng!
-          </div>
-        </div>
-
-        <div class="timeline-questions" style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
-          <div class="timeline-card" style="background: rgba(14, 24, 18, 0.85); border: 1.5px solid #A8C879; border-radius: 8px; padding: 12px;">
-            <div style="font-weight: 700; color: #F4C978; margin-bottom: 4px;">1. Năm 1947: Sự kiện gì gắn liền với Định Hóa?</div>
-            <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer;">
-              <input type="radio" name="atk_q1" value="correct" checked />
-              Bác Hồ và Trung ương chọn Định Hóa làm An Toàn Khu (ATK) đầu não kháng chiến
-            </label>
-          </div>
-
-          <div class="timeline-card" style="background: rgba(14, 24, 18, 0.85); border: 1.5px solid #A8C879; border-radius: 8px; padding: 12px;">
-            <div style="font-weight: 700; color: #F4C978; margin-bottom: 4px;">2. Ngày 6/12/1953: Cuộc họp lịch sử tại Đồi Tỉn Keo quyết định điều gì?</div>
-            <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer;">
-              <input type="radio" name="atk_q2" value="correct" checked />
-              Bộ Chính trị phê chuẩn chủ trương mở Chiến dịch Điện Biên Phủ lịch sử
-            </label>
-          </div>
-
-          <div class="timeline-card" style="background: rgba(14, 24, 18, 0.85); border: 1.5px solid #A8C879; border-radius: 8px; padding: 12px;">
-            <div style="font-weight: 700; color: #F4C978; margin-bottom: 4px;">3. Ý nghĩa văn hóa - lịch sử của Lán Khuôn Tát và rặng tre chiến khu?</div>
-            <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer;">
-              <input type="radio" name="atk_q3" value="correct" checked />
-              Nơi Bác Hồ sống giản dị, hòa cùng thiên nhiên và tấm lòng chở che của đồng bào Tày
-            </label>
-          </div>
-        </div>
-
-        <button id="btn-atk-submit" class="btn btn-primary" style="margin-top: 18px; width: 100%;">
-          Ghi Danh Sử Sách & Nhận "Mảnh Ký Ức Lịch Sử" ➔
-        </button>
-      </div>
-    `;
-
-    document.getElementById('btn-atk-submit')?.addEventListener('click', () => {
+  private render(feedback = '') {
+    const options = ['Bối cảnh kháng chiến và hoạt động của ATK', 'Cuộc họp tại Tỉn Keo quyết định mở Chiến dịch Điện Biên Phủ', 'Di tích được xếp hạng di tích lịch sử quốc gia đặc biệt'];
+    const rows = [
+      ['1947', 'Giai đoạn đầu của ATK trong kháng chiến'],
+      ['1953', 'Ngày 6 tháng 12: cuộc họp tại Tỉn Keo'],
+      ['2012', 'Mốc ghi nhận di tích cấp quốc gia đặc biệt']
+    ];
+    this.containerEl.innerHTML = `<section class="atk-game-wrapper"><div class="minigame-header-info"><h3>Ghép tư liệu với mốc thời gian</h3><p>Chọn một mô tả cho mỗi mốc. Đây là hoạt động giáo dục trong trò chơi; tư liệu gốc không phải đồ sưu tầm.</p></div><div class="timeline-questions">${rows.map(([year, prompt], index) => `<label class="timeline-card"><strong>${year} · ${prompt}</strong><select data-match="${index}"><option value="">— Chọn nội dung —</option>${options.map((option, optionIndex) => `<option value="${optionIndex}" ${this.matches[index] === String(optionIndex) ? 'selected' : ''}>${option}</option>`).join('')}</select></label>`).join('')}</div>${feedback ? `<p class="timeline-feedback" role="status">${feedback}</p>` : ''}<button id="btn-atk-submit" class="btn btn-primary">Kiểm tra phần ghép ➜</button></section>`;
+    this.containerEl.querySelectorAll<HTMLSelectElement>('[data-match]').forEach(select => select.addEventListener('change', () => { this.matches[Number(select.dataset.match)] = select.value; }));
+    this.containerEl.querySelector<HTMLButtonElement>('#btn-atk-submit')?.addEventListener('click', () => {
+      if (this.matches.some(value => !value)) { this.render('Hãy ghép đủ cả ba mốc rồi xác nhận.'); return; }
+      if (this.matches.join(',') !== '0,1,2') { AudioManager.getInstance().playClick(); this.render('Có cặp chưa đúng. Hãy xem lại ghi chú và thử lại; bạn có thể thử không giới hạn.'); return; }
       AudioManager.getInstance().playFanfare();
-      InventoryManager.getInstance().addItem('fragment_history', 1);
-      QuestManager.getInstance().completeQuest('quest_atk_dinh_hoa');
-
-      if (this.onCompleteCallback) {
-        this.onCompleteCallback();
-      }
+      this.containerEl.innerHTML = `<section class="atk-game-wrapper"><h3>Phần ghép đã đúng</h3><p>Ba mốc được đặt theo thứ tự: bối cảnh ATK, quyết định tại Tỉn Keo năm 1953, rồi sự ghi nhận di tích năm 2012.</p><button id="btn-atk-finish" class="btn btn-primary">Ghi vào trang nhật ký ➜</button></section>`;
+      this.containerEl.querySelector('#btn-atk-finish')?.addEventListener('click', () => this.onCompleteCallback?.());
     });
   }
 }

@@ -1,4 +1,5 @@
 import { IQuest } from '../types/game';
+import { LAKE_OBJECTIVES } from './lake';
 
 export const INITIAL_QUESTS: Record<string, IQuest> = {
   quest_tan_cuong: {
@@ -61,25 +62,12 @@ export const INITIAL_QUESTS: Record<string, IQuest> = {
   },
   quest_ho_nui_coc: {
     id: 'quest_ho_nui_coc',
-    title: 'Lời Thì Thầm Của Mặt Hồ',
+    title: 'Hồ Núi Cốc — Theo dấu mặt hồ',
     regionId: 'ho_nui_coc',
     giverNpcId: 'npc_ngu_ong',
-    description: 'Gặp gỡ lão ngư bên bến thuyền Hồ Núi Cốc, khám phá câu chuyện tình huyền thoại của nàng Công và chàng Cốc gắn liền với danh thắng này.',
-    culturalNote: 'Huyền thoại chàng Cốc ôm nỗi nhớ người thương hóa núi, nàng Công khóc cạn nước mắt hóa dòng sông là biểu tượng bất tử của tình yêu son sắt.',
-    objectives: [
-      {
-        id: 'obj_meet_boatman',
-        text: 'Nói chuyện với lão ngư bên bến đò Hồ Núi Cốc',
-        completed: false
-      },
-      {
-        id: 'obj_legend_puzzle',
-        text: 'Khám phá 3 đảo huyền tích và ghép mảnh cổ thư',
-        completed: false,
-        targetCount: 3,
-        currentCount: 0
-      }
-    ],
+    description: 'Cùng Lão Ngư khám phá mười hai điểm dừng quanh hồ: cảnh quan, lịch sử công trình, đảo Núi Cái và câu chuyện nàng Công – chàng Cốc. Hoàn thiện trang sổ và bưu thiếp để lưu dấu hành trình.',
+    culturalNote: 'Lịch sử xây dựng hồ chứa trên sông Công được trình bày riêng với huyền tích tại Huyền Thoại Cung. Bản đồ và hoạt động trong trò chơi được cách điệu.',
+    objectives: LAKE_OBJECTIVES.map(objective => ({ ...objective, completed: false })),
     rewards: {
       items: ['fragment_legend'],
       fragmentId: 'fragment_legend',
@@ -174,6 +162,59 @@ export const INITIAL_QUESTS: Record<string, IQuest> = {
       fragmentId: 'fragment_exploration',
       achievementId: 'ach_master_explorer'
     },
+    status: 'locked'
+  },
+  quest_thai_hai: {
+    id: 'quest_thai_hai',
+    title: 'Bữa cơm bên hiên bản',
+    regionId: 'thai_hai',
+    giverNpcId: 'thai_hai_host',
+    description: 'Giúp chuẩn bị một buổi đón khách hư cấu: nhận hướng dẫn, chọn rau theo nhãn, chuyển nguyên liệu và sắp bàn.',
+    culturalNote: 'Tình huống trong trò chơi là hư cấu và không đại diện cho mọi gia đình hay cộng đồng Tày.',
+    objectives: [
+      { id: 'th_meet_host', text: 'Gặp người đón khách tại cổng bản', completed: false },
+      { id: 'th_learn_guidelines', text: 'Đọc ba hướng dẫn dành cho khách', completed: false, targetCount: 3, currentCount: 0 },
+      { id: 'th_choose_ingredients', text: 'Chọn đúng ba loại rau theo nhãn và gợi ý', completed: false },
+      { id: 'th_prepare_meal', text: 'Sắp xếp ba bước chuẩn bị theo hướng dẫn', completed: false },
+      { id: 'th_set_table', text: 'Sắp bàn đón khách và mời mọi người ra hiên', completed: false }
+    ],
+    rewards: { items: ['fragment_people'], fragmentId: 'fragment_people', achievementId: 'ach_thai_hai_guest' },
+    status: 'locked'
+  },
+  quest_den_duom: {
+    id: 'quest_den_duom',
+    title: 'Theo dấu hội xuân',
+    regionId: 'den_duom',
+    giverNpcId: 'den_duom_guide',
+    description: 'Hoàn thiện tờ giới thiệu bằng cách ghép thông tin, chuẩn bị khu đón khách và chọn cách ứng xử phù hợp.',
+    culturalNote: 'Hoạt động lễ hội trong trò chơi là minh họa quanh năm; không mô phỏng nghi lễ hay lịch tổ chức thật.',
+    objectives: [
+      { id: 'dd_meet_guide', text: 'Gặp tình nguyện viên tại cổng đón khách', completed: false },
+      { id: 'dd_collect_cards', text: 'Thăm ba điểm diễn giải và thu thập thẻ thông tin', completed: false, targetCount: 3, currentCount: 0 },
+      { id: 'dd_match_leaflet', text: 'Ghép ba thẻ vào đúng mục trong tờ giới thiệu', completed: false },
+      { id: 'dd_prepare_courtyard', text: 'Chuẩn bị bảng chỉ dẫn và bàn thông tin ở sân sinh hoạt', completed: false },
+      { id: 'dd_visitor_choices', text: 'Chọn cách ứng xử phù hợp trong ba tình huống', completed: false, targetCount: 3, currentCount: 0 },
+      { id: 'dd_return_stamp', text: 'Trở lại bàn lưu dấu', completed: false }
+    ],
+    rewards: { items: ['fragment_tradition'], fragmentId: 'fragment_tradition', achievementId: 'ach_den_duom_guest' },
+    status: 'locked'
+  },
+  quest_bao_tang_van_hoa: {
+    id: 'quest_bao_tang_van_hoa',
+    title: 'Người kết nối di sản',
+    regionId: 'bao_tang_van_hoa',
+    giverNpcId: 'museum_educator',
+    description: 'Khám phá các mô hình giáo dục số, đối chiếu nhãn và tự tạo một triển lãm nhỏ.',
+    culturalNote: 'Mặt bằng và các mô hình trong trò chơi được cách điệu, không mô tả hiện vật cụ thể hay sơ đồ thật của bảo tàng.',
+    objectives: [
+      { id: 'bm_meet_guide', text: 'Gặp người hướng dẫn tại sảnh', completed: false },
+      { id: 'bm_read_label', text: 'Tìm hiểu cách đọc nhãn giới thiệu', completed: false },
+      { id: 'bm_inspect_models', text: 'Quan sát bốn mô hình giáo dục số', completed: false, targetCount: 4, currentCount: 0 },
+      { id: 'bm_match_uses', text: 'Ghép mô hình với công dụng được ghi trên nhãn', completed: false },
+      { id: 'bm_build_exhibit', text: 'Chọn và sắp thứ tự ba thẻ cho triển lãm cá nhân', completed: false },
+      { id: 'bm_title_exhibit', text: 'Đặt tên, chọn chú thích và lưu triển lãm', completed: false }
+    ],
+    rewards: { items: [], achievementId: 'ach_museum_connector' },
     status: 'locked'
   }
 };

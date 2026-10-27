@@ -1,6 +1,5 @@
 import { TEA_BREWING_PROFILES } from '../data/teaBrewingProfiles';
 import { AudioManager } from '../systems/AudioManager';
-import { QuestManager } from '../systems/QuestManager';
 import { TeaBrewingEvaluator } from '../systems/TeaBrewingEvaluator';
 import { IFavoriteTeaRecipe, ITeaBrewingSessionState } from '../types/game';
 
@@ -40,7 +39,7 @@ export class TeaBrewingMinigame {
     private containerEl: HTMLElement,
     private onFinish: () => void,
     private freeMode = false,
-    private onProgress: () => void = () => undefined,
+    private onProgress: (objectiveId: string) => void = () => undefined,
     private onSessionChange: (session: ITeaBrewingSessionState | null, completedSession?: ITeaBrewingSessionState) => void = () => undefined,
     private initialSession?: ITeaBrewingSessionState,
     private favorites: IFavoriteTeaRecipe[] = [],
@@ -101,10 +100,7 @@ export class TeaBrewingMinigame {
   }
 
   private progress(objectiveId: string) {
-    if (!this.freeMode) {
-      QuestManager.getInstance().completeObjective('quest_first_tea', objectiveId);
-      this.onProgress();
-    }
+    if (!this.freeMode) this.onProgress(objectiveId);
   }
 
   private button(selector: string, callback: () => void) {
@@ -155,13 +151,13 @@ export class TeaBrewingMinigame {
     } else if (this.stage === 1) {
       content = `${this.header('Làm quen với bộ trà', 'Chạm vào từng vật dụng. Bác Lâm sẽ giới thiệu ngắn gọn công dụng của chúng.')}
         <div class="brew-table-art">${this.equipmentArt()}</div><div class="brew-tools">${TOOLS.map(([id, name]) => `<button class="brew-object ${this.inspectedTools.has(id) ? 'discovered' : ''}" data-tool="${id}"><span>${this.toolGlyph(id)}</span><b>${name}</b><small>${this.inspectedTools.has(id) ? 'Đã tìm hiểu' : 'Chạm để tìm hiểu'}</small></button>`).join('')}</div>
-        <div class="brew-mentor"><b>Bác Lâm</b><span>${this.activeToolHint}</span></div><button class="btn btn-primary" id="brew-tools-next" ${this.inspectedTools.size < TOOLS.length ? 'disabled' : ''}>Đã tìm hiểu xong ➜</button>`;
+        <div class="brew-mentor"><b>Bác Lâm</b><span>${this.activeToolHint}</span></div><button class="btn btn-primary" id="brew-tools-next" ${!this.hasInspectedAllTools() ? 'disabled' : ''}>Đã tìm hiểu xong ➜</button>`;
     } else if (this.stage === 2) {
       content = `${this.header('Chuẩn bị bàn trà', 'Kéo dụng cụ vào vị trí gợi ý. Nếu dùng thiết bị cảm ứng, chạm vào món đồ rồi chạm vào vị trí đặt.')}
         <div class="brew-interactive-table"><div class="brew-table-surface"><div class="brew-target-row">
           ${this.prepTarget('tray', 'Khay trà', this.inspectedTools.has('prep-tray'))}${this.prepTarget('pot', 'Vị trí đặt ấm', this.inspectedTools.has('prep-pot'))}${this.prepTarget('cups', 'Đặt chén bên cạnh', this.inspectedTools.has('prep-cups'))}${this.prepTarget('kettle', 'Đặt ấm nước', this.inspectedTools.has('prep-kettle'))}
         </div><div class="brew-prop-row">${this.prepItem('tray', 'KHAY TRÀ', this.inspectedTools.has('prep-tray'))}${this.prepItem('pot', 'ẤM TRÀ', this.inspectedTools.has('prep-pot'))}${this.prepItem('cups', 'BỘ CHÉN', this.inspectedTools.has('prep-cups'))}${this.prepItem('kettle', 'ẤM NƯỚC', this.inspectedTools.has('prep-kettle'))}<button class="brew-drag-item optional" type="button" data-prep-item="pitcher"><i class="brew-glyph brew-glyph-cup">TỐNG</i><b>Tống trà</b><small>Tùy chọn</small></button><button class="brew-drag-item optional" type="button" data-prep-item="cloth"><i class="brew-glyph brew-glyph-cloth">KHĂN</i><b>Khăn trà</b><small>Tùy chọn</small></button></div></div></div>
-        <div class="brew-warming-row"><button class="btn btn-secondary" id="brew-warm-pot" ${!this.inspectedTools.has('prep-pot') || !this.inspectedTools.has('prep-kettle') || this.warmingWater >= 40 ? 'disabled' : ''}>${this.warmingWater ? `Đã tráng ấm · ${this.warmingWater} ml` : 'Nghiêng ấm nước để tráng ấm'}</button><span>Tráng ấm là lựa chọn của bài học này; cách pha có thể khác nhau.</span></div><div class="brew-mentor"><b>Bác Lâm</b><span>${this.prepStatus()}</span></div><button class="btn btn-primary" id="brew-prep-next" ${!this.prepared() ? 'disabled' : ''}>Đong trà và chọn lượng nước ➜</button>`;
+        <div class="brew-warming-row"><button class="btn btn-secondary" id="brew-warm-pot" ${!this.inspectedTools.has('prep-pot') || !this.inspectedTools.has('prep-kettle') || this.warmingWater >= 40 ? 'disabled' : ''}>${this.warmingWater ? `Đã tráng ấm · ${this.warmingWater} ml` : 'Tùy chọn: nghiêng ấm nước để tráng ấm'}</button><span>Tráng ấm là lựa chọn của bài học này; cháu có thể bỏ qua và tiếp tục.</span></div><div class="brew-mentor"><b>Bác Lâm</b><span>${this.prepStatus()}</span></div><button class="btn btn-primary" id="brew-prep-next" ${!this.prepared() ? 'disabled' : ''}>Đong trà và chọn lượng nước ➜</button>`;
     } else if (this.stage === 3) {
       const favoriteRecipes = this.favorites.map(recipe => {
         const recipeId = recipe.id.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -179,7 +175,7 @@ export class TeaBrewingMinigame {
     } else if (this.stage === 5) {
       const waterPct = Math.min(100, (this.pouredWater / this.waterVolume) * 100);
       content = `${this.header('Rót nước vào ấm', 'Chạm vào ấm nước để rót từng lượng nhỏ. Bạn có thể dừng bất cứ lúc nào.')}
-        <div class="brew-pour-scene"><button class="brew-pour-kettle" id="brew-pour-more" aria-label="Rót thêm nước"><span class="brew-kettle mini"><i></i></span><b>Rót thêm 20 ml</b></button><div class="brew-water-stream ${this.pouredWater > 0 ? 'flowing' : ''}"></div><div class="brew-pot-fill"><span style="height:${waterPct}%"></span></div></div>
+        <div class="brew-pour-scene"><button class="brew-pour-kettle" id="brew-pour-more" aria-label="Nhấn giữ để rót thêm nước"><span class="brew-kettle mini"><i></i></span><b>${this.pouredWater >= this.waterVolume ? 'Đã rót đủ nước' : 'Nhấn giữ để rót'}</b></button><div class="brew-water-stream ${this.pouredWater > 0 ? 'flowing' : ''}"></div><div class="brew-pot-fill"><span style="height:${waterPct}%"></span></div></div>
         <div class="brew-volume-row"><b>Nước trong ấm</b><strong>${this.pouredWater} / ${this.waterVolume} ml</strong></div><div class="brew-volume-track"><span style="width:${waterPct}%"></span></div><div class="brew-mentor"><b>Bác Lâm</b><span>Rót từ tốn và quan sát lượng nước. Đã rót ${this.pouredWater} ml; lượng này sẽ được ghi vào mẻ pha của cháu.</span></div><button class="btn btn-primary" id="brew-stop-pour" ${this.pouredWater < 50 ? 'disabled' : ''}>Dừng rót, bắt đầu hãm ➜</button>`;
     } else if (this.stage === 6) {
       const infusion = Math.min(1, this.steepingDuration / 25);
@@ -252,7 +248,13 @@ export class TeaBrewingMinigame {
   }
 
   private prepared() {
-    return ['tray', 'pot', 'cups', 'warm'].every(id => this.inspectedTools.has(`prep-${id}`));
+    // Warming vessels is an optional custom; the basic recipe can continue once
+    // the tray, teapot, and cups are arranged.
+    return ['tray', 'pot', 'cups'].every(id => this.inspectedTools.has(`prep-${id}`));
+  }
+
+  private hasInspectedAllTools() {
+    return TOOLS.every(([id]) => this.inspectedTools.has(id));
   }
 
   private prepStatus() {
@@ -260,7 +262,7 @@ export class TeaBrewingMinigame {
       this.inspectedTools.has('prep-tray') ? 'khay đã đặt' : 'chưa trải khay',
       this.inspectedTools.has('prep-pot') ? 'ấm đã đặt' : 'chưa đặt ấm',
       this.inspectedTools.has('prep-cups') ? 'chén đã sắp' : 'chưa sắp chén',
-      this.inspectedTools.has('prep-warm') ? 'ấm đã tráng' : 'chưa tráng ấm'
+      this.inspectedTools.has('prep-warm') ? 'ấm đã tráng' : 'tráng ấm tùy chọn'
     ];
     return `Bác sẽ hướng dẫn từng bước: ${labels.join(' · ')}.`;
   }
@@ -292,7 +294,7 @@ export class TeaBrewingMinigame {
         this.render();
       }));
       this.button('#brew-tools-next', () => {
-        if (this.inspectedTools.size < TOOLS.length) return;
+        if (!this.hasInspectedAllTools()) return;
         this.progress('obj_learn_brewing_tools');
         this.setStage(2);
       });
@@ -400,15 +402,25 @@ export class TeaBrewingMinigame {
         this.pourTimer = null;
         pourButton?.classList.remove('tilting');
         this.containerEl.querySelector('.brew-water-stream')?.classList.remove('flowing');
+        const nextButton = this.containerEl.querySelector<HTMLButtonElement>('#brew-stop-pour');
+        if (nextButton) nextButton.disabled = this.pouredWater < 50;
+        const pourLabel = pourButton?.querySelector('b');
+        if (pourLabel) pourLabel.textContent = this.pouredWater >= this.waterVolume ? 'Đã rót đủ nước' : 'Nhấn giữ để rót';
+        const mentor = this.containerEl.querySelector<HTMLElement>('.brew-mentor span');
+        if (mentor) mentor.textContent = `Rót từ tốn và quan sát lượng nước. Đã rót ${this.pouredWater} ml; lượng này sẽ được ghi vào mẻ pha của cháu.`;
         this.persistSession();
       };
       const pourTick = () => {
         this.pouredWater = Math.min(this.waterVolume, this.pouredWater + 5);
-        const label = pourButton?.querySelector('b'); if (label) label.textContent = `${this.pouredWater} / ${this.waterVolume} ml · thả để dừng`;
+        const label = pourButton?.querySelector('b'); if (label) label.textContent = this.pouredWater >= this.waterVolume ? 'Đã rót đủ nước' : `${this.pouredWater} / ${this.waterVolume} ml · thả để dừng`;
         const volumeLabel = this.containerEl.querySelector<HTMLElement>('.brew-volume-row strong'); if (volumeLabel) volumeLabel.textContent = `${this.pouredWater} / ${this.waterVolume} ml`;
         const fill = this.containerEl.querySelector<HTMLElement>('.brew-pot-fill span');
         if (fill) fill.style.height = `${Math.min(100, this.pouredWater / this.waterVolume * 100)}%`;
         const stream = this.containerEl.querySelector<HTMLElement>('.brew-water-stream'); stream?.classList.add('flowing');
+        const nextButton = this.containerEl.querySelector<HTMLButtonElement>('#brew-stop-pour');
+        if (nextButton) nextButton.disabled = this.pouredWater < 50;
+        const mentor = this.containerEl.querySelector<HTMLElement>('.brew-mentor span');
+        if (mentor) mentor.textContent = `Rót từ tốn và quan sát lượng nước. Đã rót ${this.pouredWater} ml; lượng này sẽ được ghi vào mẻ pha của cháu.`;
         if (this.pouredWater >= this.waterVolume) stopPour();
       };
       const beginPour = (event: Event) => {
@@ -416,7 +428,7 @@ export class TeaBrewingMinigame {
         if (this.pourTimer !== null || this.pouredWater >= this.waterVolume) return;
         pourButton?.classList.add('tilting');
         pourTick();
-        this.pourTimer = window.setInterval(pourTick, 120);
+        if (this.pouredWater < this.waterVolume) this.pourTimer = window.setInterval(pourTick, 120);
       };
       pourButton?.addEventListener('pointerdown', beginPour);
       pourButton?.addEventListener('pointerup', stopPour);
@@ -511,10 +523,8 @@ export class TeaBrewingMinigame {
       this.button('#brew-enjoy', () => {
         this.progress('obj_enjoy_first_tea');
         this.progress('obj_unlock_tea_discovery');
-        if (!this.freeMode) QuestManager.getInstance().completeQuest('quest_first_tea');
         const completedSession = this.sessionSnapshot();
         this.onSessionChange(null, completedSession);
-        this.onProgress();
         this.onFinish();
       });
       this.button('#brew-again', () => {

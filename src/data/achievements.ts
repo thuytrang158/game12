@@ -70,5 +70,26 @@ export const ACHIEVEMENTS: Record<string, IAchievement> = {
     description: 'Vượt qua thác ghềnh của dòng suối Cửa Tử hoang sơ.',
     icon: '🌊',
     unlocked: false
+  },
+  ach_thai_hai_guest: {
+    id: 'ach_thai_hai_guest',
+    title: 'Người bạn của bản',
+    description: 'Hoàn thành buổi đón khách hư cấu tại Làng Thái Hải.',
+    icon: '🏡',
+    unlocked: false
+  },
+  ach_den_duom_guest: {
+    id: 'ach_den_duom_guest',
+    title: 'Bạn đồng hành hội xuân',
+    description: 'Hoàn thành tờ giới thiệu và phần chuẩn bị khu đón khách trong trò chơi.',
+    icon: '🎋',
+    unlocked: false
+  },
+  ach_museum_connector: {
+    id: 'ach_museum_connector',
+    title: 'Người kết nối di sản',
+    description: 'Tạo và lưu một triển lãm cá nhân từ các mô hình giáo dục số.',
+    icon: '🏛️',
+    unlocked: false
   }
 };

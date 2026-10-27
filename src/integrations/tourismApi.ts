@@ -62,8 +62,6 @@ export class TourismApiAdapter {
       destinationId: destId
     });
 
-    // Provide friendly in-game notification / prompt
-    alert(`[Cổng Thông Tin Du Lịch Thái Nguyên]\n\nĐang kết nối tới trang thông tin chính thức của "${DESTINATIONS[destId]?.vietnameseTitle || destId}".\n(Trong bản tích hợp thực tế, liên kết sẽ dẫn trực tiếp đến trang điểm đến trên website du lịch).`);
   }
 
   /**
@@ -77,6 +75,5 @@ export class TourismApiAdapter {
       payload: tour
     });
 
-    alert(`[Đặt Tour Du Lịch Thái Nguyên]\n\nBạn đã chọn: "${tour.title}"\nThời lượng: ${tour.duration}\nĐiểm đánh giá: ⭐ ${tour.rating}/5.0\n\n(Hệ thống đang chuyển tiếp thông tin tới trang đặt tour và áp dụng mã ưu đãi "XUTRAQUEST").`);
   }
 }

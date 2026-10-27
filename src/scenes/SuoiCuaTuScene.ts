@@ -5,6 +5,9 @@ import { INPCConfig } from '../types/game';
 import { UIManager } from '../ui/UIManager';
 import { QuestManager } from '../systems/QuestManager';
 import { AudioManager } from '../systems/AudioManager';
+import { initializeRegionSystems, persistRegionCheckpoint, transitionToRegion } from '../systems/RegionRegistry';
+import { RegionalExplorerGuide, ExplorationStop } from '../systems/RegionalExplorerGuide';
+import { ProgressionService } from '../systems/ProgressionService';
 
 export class SuoiCuaTuScene extends Phaser.Scene {
   private player!: Player;
@@ -14,19 +17,35 @@ export class SuoiCuaTuScene extends Phaser.Scene {
   private mapWidth = 960;
   private mapHeight = 720;
   private nearestInteractable: any = null;
+  private explorationGuide?: RegionalExplorerGuide;
 
   constructor() {
     super({ key: 'SuoiCuaTuScene' });
   }
 
   create() {
+    const save = initializeRegionSystems('suoi_cua_tu');
     UIManager.getInstance().setHUDVisible(true);
     UIManager.getInstance().setRegionName('Suối Cửa Tử');
     UIManager.getInstance().updateHUDQuest();
 
-    this.player = new Player(this, 180, 520);
+    const savedPosition = save.regionProgress?.suoi_cua_tu?.player;
+    this.player = new Player(this, savedPosition?.x ?? 180, savedPosition?.y ?? 520);
+    if (savedPosition?.dir) this.player.setDirection(savedPosition.dir);
     this.createEnvironment();
     this.createNPCs();
+    const stops: ExplorationStop[] = [
+      { id: 'start', label: 'Trạm xuất phát', x: 180, y: 520 },
+      { id: 'gear', label: 'Bàn hành trang', x: 340, y: 475 },
+      { id: 'weather', label: 'Điểm đọc tình huống thời tiết', x: 610, y: 450 },
+      { id: 'stream-trail', label: 'Chặng ven suối', x: 480, y: 380 },
+      { id: 'rest', label: 'Điểm nghỉ', x: 245, y: 290 },
+      { id: 'viewpoint', label: 'Điểm ngắm thác', x: 730, y: 220 }
+    ];
+    this.explorationGuide = new RegionalExplorerGuide(this, 'suoi_cua_tu', 'Suối Cửa Tử', stops, () => this.player, () => QuestManager.getInstance().getCurrentObjectiveText(), stop => {
+      this.player.setPosition(stop.x, stop.y + 34);
+      persistRegionCheckpoint('suoi_cua_tu', { x: this.player.x, y: this.player.y, dir: this.player.getDirection() }, stop.id);
+    });
 
     this.cameras.main.setBounds(0, 0, this.mapWidth, this.mapHeight);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -39,8 +58,9 @@ export class SuoiCuaTuScene extends Phaser.Scene {
     }
 
     UIManager.getInstance().setOnTravelCallback((regionId) => {
-      this.travelToRegion(regionId);
+      transitionToRegion(this, 'suoi_cua_tu', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
     });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => persistRegionCheckpoint('suoi_cua_tu', { x: this.player.x, y: this.player.y, dir: this.player.getDirection() }));
 
     setTimeout(() => {
       UIManager.getInstance().showToast('🌊 Bạn đã đến Thiên đường Trekking Suối Cửa Tử!');
@@ -120,6 +140,7 @@ export class SuoiCuaTuScene extends Phaser.Scene {
     const isUIBlocking = UIManager.getInstance().isDialogueOpen() || UIManager.getInstance().isAnyModalOpen();
     this.player.setControlActive(!isUIBlocking);
     this.player.update(time, delta);
+    this.explorationGuide?.update();
 
     let nearby = false;
     for (const npc of this.npcs) {
@@ -155,6 +176,8 @@ export class SuoiCuaTuScene extends Phaser.Scene {
       if (action === 'openMinigame' && payload === 'river_crossing') {
         UIManager.getInstance().closeDialogue();
         UIManager.getInstance().openMiniGame('river_crossing', () => {
+          ProgressionService.completeObjective('quest_suoi_cua_tu', 'obj_cross_river', 'suoi_cua_tu');
+          UIManager.getInstance().updateHUDQuest();
           this.handleNPCInteraction(npc);
         });
       } else if (action === 'openDestCard') {
@@ -165,25 +188,6 @@ export class SuoiCuaTuScene extends Phaser.Scene {
   }
 
   private travelToRegion(regionId: string) {
-    const sceneMap: Record<string, string> = {
-      tan_cuong: 'TanCuongScene',
-      ho_nui_coc: 'HoNuiCocScene',
-      atk_dinh_hoa: 'AtkDinhHoaScene',
-      hang_phuong_hoang: 'HangPhuongHoangScene',
-      suoi_cua_tu: 'SuoiCuaTuScene'
-    };
-
-    const targetScene = sceneMap[regionId];
-    if (targetScene && targetScene !== 'SuoiCuaTuScene') {
-      let started = false;
-      const launch = () => {
-        if (started) return;
-        started = true;
-        this.scene.start(targetScene);
-      };
-      this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', launch);
-      this.time.delayedCall(400, launch);
-    }
+    transitionToRegion(this, 'suoi_cua_tu', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
   }
 }

@@ -16,6 +16,9 @@ import { HistoricalTimelineMinigame } from '../minigames/HistoricalTimelineMinig
 import { CaveLightMinigame } from '../minigames/CaveLightMinigame';
 import { RiverCrossingMinigame } from '../minigames/RiverCrossingMinigame';
 import { ShopModal } from './ShopModal';
+import { getSceneKey, hasAllJourneyMemories, isRegionUnlocked, MEMORY_FRAGMENT_IDS } from '../systems/RegionRegistry';
+import { DestinationActivityId, DestinationActivityMinigame, DestinationExhibition } from '../minigames/DestinationActivityMinigame';
+import { SUGGESTED_ROUTE } from '../systems/RegionRegistry';
 
 export class UIManager {
   private static instance: UIManager;
@@ -37,6 +40,10 @@ export class UIManager {
   private minigameModalEl!: HTMLElement;
   private shopModalEl!: HTMLElement;
   private shopModalInstance: ShopModal | null = null;
+  private currentDestinationCardId = 'tan_cuong';
+  private explorationGuideEl?: HTMLElement;
+  private explorationGuideRegionId = '';
+  private explorationGuideCollapsed = false;
 
   // Dialogue state
   private currentDialogue: IDialogueNode | null = null;
@@ -67,6 +74,12 @@ export class UIManager {
 
     this.bindEvents();
     this.bindSystemListeners();
+    const existingSave = SaveManager.getInstance().load();
+    if (hasAllJourneyMemories(existingSave) && !existingSave.journeyEndingPresented) {
+      existingSave.journeyEndingPresented = true;
+      SaveManager.getInstance().save(existingSave);
+      window.setTimeout(() => this.openJourneyEnding(), 0);
+    }
   }
 
   private bindEvents() {
@@ -90,7 +103,7 @@ export class UIManager {
     });
 
     document.getElementById('dest-btn-explore-more')?.addEventListener('click', () => {
-      TourismApiAdapter.getInstance().onExploreDestination('tan_cuong');
+      TourismApiAdapter.getInstance().onExploreDestination(this.currentDestinationCardId);
     });
     document.getElementById('dest-btn-view-tours')?.addEventListener('click', () => {
       document.querySelector('.dest-tours-section')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
@@ -129,6 +142,7 @@ export class UIManager {
   }
 
   private bindSystemListeners() {
+    window.addEventListener('thai-nguyen-journey-ending', () => this.openJourneyEnding());
     QuestManager.getInstance().addListener((event, quest) => {
       this.updateHUDQuest();
       if (event === 'quest_completed') {
@@ -365,6 +379,11 @@ export class UIManager {
     if (this.shopModalEl) this.shopModalEl.classList.add('hidden');
   }
 
+  /** Own transient exhibit timers with the same lifecycle as hosted mini-games. */
+  public setExhibitCleanup(cleanup: () => void) {
+    this.activeMinigame = { destroy: cleanup };
+  }
+
   public openShop(onClose?: () => void) {
     AudioManager.getInstance().playClick();
     this.closeAllModals();
@@ -433,6 +452,60 @@ export class UIManager {
 
     // Render first available or prompt
     this.renderFragmentDetail('fragment_tea_culture', InventoryManager.getInstance().hasItem('fragment_tea_culture'));
+    if (hasAllJourneyMemories(SaveManager.getInstance().load())) {
+      const button = document.createElement('button');
+      button.className = 'btn btn-primary';
+      button.textContent = 'Mở Cuốn sổ xứ trà · Xem lại hành trình';
+      button.addEventListener('click', () => this.openJourneyEnding(true));
+      detailEl.appendChild(button);
+    }
+  }
+
+  public openJourneyEnding(replay = false) {
+    if (!hasAllJourneyMemories(SaveManager.getInstance().load())) return;
+    const slides = [
+      { title: 'Đất và mặt nước', text: 'Từ nương chè Tân Cương tới truyền thuyết dân gian bên Hồ Núi Cốc, hành trình bắt đầu bằng cách lắng nghe cảnh quan và câu chuyện.' },
+      { title: 'Dấu tích và ánh sáng', text: 'Những trang sử ở ATK, hình đá trong hang và con đường ven suối gợi nhắc cách con người tìm hiểu, gìn giữ và bước đi cẩn trọng.' },
+      { title: 'Con người và ký ức', text: 'Những cuộc gặp ở Thái Hải, câu chuyện tại Đền Đuổm và các mô hình giáo dục trong bảo tàng nối thành cuốn sổ riêng của bạn.' }
+    ];
+    const save = SaveManager.getInstance().load();
+    const collected = new Set([...(save.collectedFragmentIds || []), ...(save.inventory || []).map(item => item.id)]);
+    let slide = 0;
+    const render = () => {
+      const body = this.openExhibit('Cuốn sổ xứ trà', 'Hành trình qua cảnh quan, con người và trải nghiệm · nội dung trò chơi');
+      body.innerHTML = `<article class="journey-ending"><span class="brew-status">${slide + 1} / ${slides.length}</span><h3>${slides[slide].title}</h3><p>${slides[slide].text}</p><div class="journey-memory-list">${MEMORY_FRAGMENT_IDS.map(id => `<span>${collected.has(id) ? '✓' : '○'} ${id.replace('fragment_','').replaceAll('_',' ')}</span>`).join('')}</div><footer><button class="btn btn-secondary" data-continue>Tiếp tục khám phá</button><button class="btn btn-primary" data-next>${slide === slides.length - 1 ? 'Xem lại hành trình' : 'Tiếp ➜'}</button></footer></article>`;
+      body.querySelector('[data-continue]')?.addEventListener('click', () => this.closeAllModals());
+      body.querySelector('[data-next]')?.addEventListener('click', () => {
+        if (slide === slides.length - 1) slide = 0;
+        else slide += 1;
+        render();
+      });
+    };
+    if (!replay) slide = 0;
+    render();
+  }
+
+  public openChapterEnding(title: string, replay = false) {
+    const slides = [
+      { title: 'Chặng đường đã hoàn thành', text: `Bạn đã hoàn thành nhiệm vụ chính tại ${title}. Dấu lưu của chương đã được thêm vào hộ chiếu.` },
+      { title: 'Một điều mang theo', text: 'Những điểm đã ghé thăm và hoạt động đã hoàn thành được lưu riêng. Bạn có thể quay lại để khám phá thêm hoặc xem lại triển lãm của mình.' }
+    ];
+    let slide = replay ? slides.length - 1 : 0;
+    const render = () => {
+      const body = this.openExhibit(title, 'Kết chương · Hành trình khám phá Thái Nguyên');
+      const article = document.createElement('article');
+      article.className = 'journey-ending';
+      const count = document.createElement('span'); count.className = 'brew-status'; count.textContent = `${slide + 1} / ${slides.length}`;
+      const heading = document.createElement('h3'); heading.textContent = slides[slide].title;
+      const paragraph = document.createElement('p'); paragraph.textContent = slides[slide].text;
+      const controls = document.createElement('footer');
+      const skip = document.createElement('button'); skip.className = 'btn btn-secondary'; skip.textContent = 'Bỏ qua';
+      skip.addEventListener('click', () => this.closeAllModals());
+      const next = document.createElement('button'); next.className = 'btn btn-primary'; next.textContent = slide === slides.length - 1 ? 'Xem lại kết chương' : 'Tiếp ➜';
+      next.addEventListener('click', () => { slide = slide === slides.length - 1 ? 0 : slide + 1; render(); });
+      controls.append(skip, next); article.append(count, heading, paragraph, controls); body.replaceChildren(article);
+    };
+    render();
   }
 
   private renderFragmentDetail(fragmentId: string, isUnlocked: boolean) {
@@ -559,6 +632,50 @@ export class UIManager {
     this.mapModalEl.classList.remove('hidden');
   }
 
+  public renderExplorationGuide(data: {
+    regionId: string;
+    title: string;
+    subtitle: string;
+    stops: Array<{ id: string; label: string; x: number; y: number; visited: boolean; highlighted: boolean }>;
+    objective: string;
+    player: { x: number; y: number };
+    visible: boolean;
+    onFastTravel: (stopId: string) => void;
+    onOpenCard: () => void;
+  }) {
+    if (!this.explorationGuideEl || this.explorationGuideRegionId !== data.regionId) {
+      this.explorationGuideEl?.remove();
+      this.explorationGuideEl = document.createElement('aside');
+      this.explorationGuideEl.className = 'regional-exploration-guide';
+      this.explorationGuideEl.setAttribute('aria-label', `Bản đồ khám phá ${data.title}`);
+      document.body.appendChild(this.explorationGuideEl);
+      this.explorationGuideRegionId = data.regionId;
+      this.explorationGuideCollapsed = false;
+    }
+    const safeId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '');
+    const width = 960, height = 720;
+    const stopPins = data.stops.map((stop, index) => `<button class="regional-guide-pin ${stop.visited ? 'visited' : ''} ${stop.highlighted ? 'next' : ''}" style="left:${Math.max(2, Math.min(98, stop.x / width * 100))}%;top:${Math.max(2, Math.min(98, stop.y / height * 100))}%" aria-label="${stop.visited ? 'Đã thăm' : 'Chưa thăm'}: ${stop.label}" ${stop.visited ? `data-fast-travel="${safeId(stop.id)}"` : 'disabled'}>${index + 1}</button>`).join('');
+    const rows = data.stops.map((stop, index) => `<li class="${stop.visited ? 'visited' : ''} ${stop.highlighted ? 'next' : ''}"><span>${stop.visited ? '✓' : stop.highlighted ? '●' : '○'} ${index + 1}. ${stop.label}</span>${stop.visited ? `<button data-fast-travel="${safeId(stop.id)}" aria-label="Đi nhanh tới ${stop.label}">Đi nhanh</button>` : '<small>Chưa thăm</small>'}</li>`).join('');
+    this.explorationGuideEl.innerHTML = `<header><div><b>${data.title}</b><small>${data.subtitle}</small></div><button class="regional-guide-toggle" aria-expanded="${!this.explorationGuideCollapsed}">${this.explorationGuideCollapsed ? 'Mở bản đồ +' : 'Thu gọn −'}</button></header>${this.explorationGuideCollapsed ? '' : `<div class="regional-guide-schematic" role="img" aria-label="Sơ đồ tuyến minh họa, không theo tỷ lệ thực tế"><span class="regional-guide-player" style="left:${Math.max(1, Math.min(99, data.player.x / width * 100))}%;top:${Math.max(1, Math.min(99, data.player.y / height * 100))}%">Bạn</span>${stopPins}</div><div class="regional-guide-objective"><strong>Mục tiêu</strong><span>${data.objective}</span></div><ol>${rows}</ol><button class="regional-guide-info">Thông tin điểm đến</button>`}`;
+    this.explorationGuideEl.classList.toggle('hidden', !data.visible);
+    this.explorationGuideEl.classList.toggle('collapsed', this.explorationGuideCollapsed);
+    this.explorationGuideEl.querySelector('.regional-guide-toggle')?.addEventListener('click', () => {
+      this.explorationGuideCollapsed = !this.explorationGuideCollapsed;
+      this.renderExplorationGuide(data);
+    }, { once: true });
+    this.explorationGuideEl.querySelectorAll<HTMLButtonElement>('[data-fast-travel]').forEach(button => {
+      button.addEventListener('click', () => data.onFastTravel(button.dataset.fastTravel || ''), { once: true });
+    });
+    this.explorationGuideEl.querySelector('.regional-guide-info')?.addEventListener('click', data.onOpenCard, { once: true });
+  }
+
+  public clearExplorationGuide(regionId: string) {
+    if (this.explorationGuideRegionId !== regionId) return;
+    this.explorationGuideEl?.remove();
+    this.explorationGuideEl = undefined;
+    this.explorationGuideRegionId = '';
+  }
+
   private renderWorldMap() {
     const nodesEl = document.getElementById('world-map-nodes');
     const detailEl = document.getElementById('map-region-detail');
@@ -567,15 +684,15 @@ export class UIManager {
     nodesEl.innerHTML = '';
 
     Object.values(DESTINATIONS).forEach(dest => {
-      const isTanCuong = dest.id === 'tan_cuong';
+      const isUnlocked = isRegionUnlocked(dest.id, SaveManager.getInstance().load());
       const isCompleted = QuestManager.getInstance().isQuestCompleted('quest_' + dest.id);
       
       const nodeBtn = document.createElement('button');
-      nodeBtn.className = `map-node-pin ${isCompleted ? 'complete' : (isTanCuong ? 'active' : 'locked')}`;
+      nodeBtn.className = `map-node-pin ${isCompleted ? 'complete' : (isUnlocked ? 'active' : 'locked')}`;
       nodeBtn.style.left = `${dest.coordinates.x}%`;
       nodeBtn.style.top = `${dest.coordinates.y}%`;
       nodeBtn.innerHTML = `
-        <span class="pin-icon">${isCompleted ? '⭐' : (isTanCuong ? '📍' : '🔒')}</span>
+        <span class="pin-icon">${isCompleted ? '⭐' : (isUnlocked ? '📍' : '🔒')}</span>
         <span class="pin-label">${dest.name}</span>
       `;
 
@@ -593,7 +710,7 @@ export class UIManager {
     const detailEl = document.getElementById('map-region-detail');
     if (!detailEl) return;
 
-    const isUnlocked = dest.id === 'tan_cuong' || InventoryManager.getInstance().hasItem('fragment_tea_culture');
+    const isUnlocked = isRegionUnlocked(dest.id, SaveManager.getInstance().load());
     const isCompleted = QuestManager.getInstance().isQuestCompleted('quest_' + dest.id);
 
     detailEl.innerHTML = `
@@ -606,6 +723,7 @@ export class UIManager {
         </div>
         <h3>${dest.vietnameseTitle}</h3>
         <p class="dest-subtitle">${dest.subtitle}</p>
+        ${SUGGESTED_ROUTE.includes(dest.id) ? `<p class="suggested-route">${dest.id === 'tan_cuong' ? 'Điểm khởi đầu gợi ý' : `Chặng ${SUGGESTED_ROUTE.indexOf(dest.id) + 1} trong tuyến gợi ý`}. Bạn có thể tự chọn thứ tự tham quan.</p>` : '<p class="suggested-route">Có thể ghé thăm sau khi mở khóa các vùng.</p>'}
         <p class="dest-address">📍 ${dest.realWorldInfo.address}</p>
 
         <div class="dest-highlights-summary">
@@ -624,7 +742,7 @@ export class UIManager {
               Dịch Chuyển Đến Vùng Này 🚀
             </button>
           ` : `
-            <span class="locked-hint" style="font-size: 11px; color: #AAA;">Mở khóa sau khi thu thập Mảnh Ký Ức trước!</span>
+            <span class="locked-hint" style="font-size: 11px; color: #AAA;">Mở khóa khi nhận Mảnh Ký Ức Văn Hóa Trà tại Tân Cương.</span>
           `}
         </div>
       </div>
@@ -647,9 +765,11 @@ export class UIManager {
   }
 
   public triggerTravelToRegion(regionId: string) {
-    if (this.onTravelCallback) {
-      this.onTravelCallback(regionId);
+    if (!isRegionUnlocked(regionId, SaveManager.getInstance().load())) {
+      this.showToast('Hãy nhận Mảnh Ký Ức Văn Hóa Trà tại Tân Cương để mở hành trình này.');
+      return;
     }
+    if (getSceneKey(regionId) && this.onTravelCallback) this.onTravelCallback(regionId);
   }
 
   public openDestinationCard(destId: string, titleOverride?: string) {
@@ -657,6 +777,7 @@ export class UIManager {
     if (!dest) return;
 
     this.closeAllModals();
+    this.currentDestinationCardId = dest.id;
 
     const titleEl = document.getElementById('dest-card-title');
     const descEl = document.getElementById('dest-card-desc');
@@ -666,37 +787,47 @@ export class UIManager {
     if (descEl) descEl.textContent = `${dest.realWorldInfo.culturalFact} ${dest.realWorldInfo.bestTimeToVisit}.`;
 
     if (toursListEl) {
-      toursListEl.innerHTML = '';
-      dest.realWorldInfo.suggestedTours.forEach(tour => {
-        const tourCard = document.createElement('div');
-        tourCard.className = 'tour-card-item';
-        tourCard.innerHTML = `
-          <div class="tour-header">
-            <span class="tour-tag">${tour.tag}</span>
-            <span class="tour-rating">⭐ ${tour.rating}/5.0</span>
-          </div>
-          <h4 class="tour-title">${tour.title}</h4>
-          <p class="tour-duration">⏱️ Thời lượng: ${tour.duration}</p>
-          <p class="tour-highlight">${tour.highlight}</p>
-          <button class="btn btn-book-tour" data-tour-id="${tour.id}">
-            Đặt Tour Này [Website Du Lịch] ➔
-          </button>
-        `;
-
-        tourCard.querySelector('.btn-book-tour')?.addEventListener('click', () => {
-          TourismApiAdapter.getInstance().onBookTour(tour, dest.id);
-        });
-
-        toursListEl.appendChild(tourCard);
-      });
+      toursListEl.replaceChildren();
+      const empty = document.createElement('p');
+      empty.className = 'tour-empty-state';
+      empty.textContent = 'Trò chơi chưa có danh sách tour được xác minh. Hãy xác nhận giờ mở cửa, điều kiện tham quan và dịch vụ trực tiếp với điểm đến trước chuyến đi.';
+      toursListEl.appendChild(empty);
     }
 
     this.modalContainerEl.classList.remove('hidden');
     this.destinationCardModalEl.classList.remove('hidden');
   }
 
+  public openDestinationActivity(
+    type: DestinationActivityId,
+    completedStages: string[],
+    exhibition: DestinationExhibition | undefined,
+    onStageComplete: (stageId: string, exhibition?: DestinationExhibition) => void,
+    onFinish: () => void
+  ) {
+    this.closeAllModals();
+    const titleEl = document.getElementById('minigame-title');
+    const iconEl = document.getElementById('minigame-icon');
+    const bodyEl = document.getElementById('minigame-body');
+    if (!bodyEl) return;
+    const titles: Record<DestinationActivityId, string> = {
+      thai_hai: 'Làng Thái Hải · Cùng chuẩn bị đón khách',
+      den_duom: 'Đền Đuổm · Theo dấu hội xuân',
+      museum: 'Bảo tàng · Người kết nối di sản'
+    };
+    if (titleEl) titleEl.textContent = titles[type];
+    if (iconEl) iconEl.textContent = type === 'thai_hai' ? '🏡' : type === 'den_duom' ? '🎋' : '🏛️';
+    const game = new DestinationActivityMinigame(bodyEl, type, onStageComplete, () => {
+      this.closeAllModals();
+      onFinish();
+    }, completedStages, exhibition);
+    this.activeMinigame = game;
+    this.modalContainerEl.classList.remove('hidden');
+    this.minigameModalEl.classList.remove('hidden');
+  }
+
   // === Mini-game Host ===
-  public openMiniGame(type: 'harvest' | 'process' | 'quiz' | 'lake_legend' | 'atk_timeline' | 'cave_light' | 'river_crossing' | 'brewing', onFinish: () => void, freeMode = false, onProgress: () => void = () => undefined) {
+  public openMiniGame(type: 'harvest' | 'process' | 'quiz' | 'lake_legend' | 'atk_timeline' | 'cave_light' | 'river_crossing' | 'brewing', onFinish: (outcome?: any) => void, freeMode = false, onProgress: (objectiveId?: string) => void = () => undefined) {
     this.closeAllModals();
 
     const titleEl = document.getElementById('minigame-title');
@@ -708,18 +839,18 @@ export class UIManager {
     if (type === 'harvest') {
       if (titleEl) titleEl.textContent = 'Thử Thách: Hái Búp Chè "1 Tôm 2 Lá"';
       if (iconEl) iconEl.textContent = '🍃';
-      const game = new TeaHarvestMinigame(bodyEl, () => {
+      const game = new TeaHarvestMinigame(bodyEl, (outcome) => {
         this.closeAllModals();
-        onFinish();
+        onFinish(outcome);
       });
 
       game.start();
     } else if (type === 'process') {
       if (titleEl) titleEl.textContent = 'Thử Thách: Sao Chè Thủ Công Tân Cương';
       if (iconEl) iconEl.textContent = '🍵';
-      const game = new TeaProcessingMinigame(bodyEl, () => {
+      const game = new TeaProcessingMinigame(bodyEl, (outcome) => {
         this.closeAllModals();
-        onFinish();
+        onFinish(outcome);
       });
 
       game.start();

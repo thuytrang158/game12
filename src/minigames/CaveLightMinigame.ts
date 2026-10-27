@@ -1,6 +1,4 @@
 import { AudioManager } from '../systems/AudioManager';
-import { InventoryManager } from '../systems/InventoryManager';
-import { QuestManager } from '../systems/QuestManager';
 
 export class CaveLightMinigame {
   private containerEl!: HTMLElement;
@@ -100,9 +98,6 @@ export class CaveLightMinigame {
     if (actionArea) actionArea.style.display = 'block';
 
     document.getElementById('btn-cave-finish')?.addEventListener('click', () => {
-      InventoryManager.getInstance().addItem('fragment_nature', 1);
-      QuestManager.getInstance().completeQuest('quest_hang_phuong_hoang');
-
       if (this.onCompleteCallback) {
         this.onCompleteCallback();
       }

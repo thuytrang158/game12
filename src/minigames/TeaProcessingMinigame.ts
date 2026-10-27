@@ -1,5 +1,4 @@
 import { AudioManager } from '../systems/AudioManager';
-import { InventoryManager } from '../systems/InventoryManager';
 import { QuestManager } from '../systems/QuestManager';
 
 type Leaf = { x: number; y: number; angle: number; curl: number; dry: number; damaged: boolean; unsuitable?: boolean; removed?: boolean };
@@ -25,10 +24,10 @@ export class TeaProcessingMinigame {
   private coverage = new Set<number>();
   private frameId: number | null = null;
   private lastFrame = 0;
-  private onCompleteCallback?: () => void;
+  private onCompleteCallback?: (outcome: { firstBatch: boolean }) => void;
   private reducedMotion = false;
 
-  constructor(private containerEl: HTMLElement, onComplete?: () => void) {
+  constructor(private containerEl: HTMLElement, onComplete?: (outcome: { firstBatch: boolean }) => void) {
     this.onCompleteCallback = onComplete;
   }
 
@@ -309,11 +308,7 @@ export class TeaProcessingMinigame {
     const quest = QuestManager.getInstance().getQuest('quest_tan_cuong');
     const processObjective = quest?.objectives.find(o => o.id === 'obj_process_tea');
     const isFirstBatch = !processObjective?.completed;
-    if (isFirstBatch) {
-      InventoryManager.getInstance().addItem('tea_processed_tan_cuong', 1);
-      QuestManager.getInstance().completeObjective('quest_tan_cuong', 'obj_process_tea');
-    }
     this.containerEl.innerHTML = `<div class="minigame-result-screen success"><div class="result-icon">🍵</div><h3>Mẻ trà đã sẵn sàng</h3><p class="result-desc">Cháu đã dàn lá, xử lý nhiệt, vò tay, rũ tơi và sao khô qua những không gian riêng. Độ đều và hình cánh ở đây là kết quả mô phỏng để học quan sát, không phải tiêu chuẩn chấm trà thật.</p><div class="reward-preview-box"><span class="reward-icon">🍵</span><div class="reward-text"><strong>${isFirstBatch ? '+1 Mẻ Trà Xanh Tân Cương Đầu Tiên' : 'Mẻ trà đã có trong hành trang'}</strong><span>${isFirstBatch ? 'Có thể mang mẻ trà tới hiên để học pha.' : 'Cháu vừa luyện tập lại quy trình.'}</span></div></div><button id="btn-process-finish" class="btn btn-primary">${isFirstBatch ? 'Tiếp tục: Gặp Bác Lâm để học pha trà ➔' : 'Tiếp tục khám phá ➔'}</button></div>`;
-    this.containerEl.querySelector('#btn-process-finish')?.addEventListener('click', () => this.onCompleteCallback?.());
+    this.containerEl.querySelector('#btn-process-finish')?.addEventListener('click', () => this.onCompleteCallback?.({ firstBatch: isFirstBatch }));
   }
 }

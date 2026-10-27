@@ -5,6 +5,9 @@ import { INPCConfig } from '../types/game';
 import { UIManager } from '../ui/UIManager';
 import { QuestManager } from '../systems/QuestManager';
 import { AudioManager } from '../systems/AudioManager';
+import { initializeRegionSystems, persistRegionCheckpoint, transitionToRegion } from '../systems/RegionRegistry';
+import { RegionalExplorerGuide, ExplorationStop } from '../systems/RegionalExplorerGuide';
+import { ProgressionService } from '../systems/ProgressionService';
 
 export class HangPhuongHoangScene extends Phaser.Scene {
   private player!: Player;
@@ -14,19 +17,35 @@ export class HangPhuongHoangScene extends Phaser.Scene {
   private mapWidth = 960;
   private mapHeight = 720;
   private nearestInteractable: any = null;
+  private explorationGuide?: RegionalExplorerGuide;
 
   constructor() {
     super({ key: 'HangPhuongHoangScene' });
   }
 
   create() {
+    const save = initializeRegionSystems('hang_phuong_hoang');
     UIManager.getInstance().setHUDVisible(true);
     UIManager.getInstance().setRegionName('Hang Phượng Hoàng');
     UIManager.getInstance().updateHUDQuest();
 
-    this.player = new Player(this, 480, 500);
+    const savedPosition = save.regionProgress?.hang_phuong_hoang?.player;
+    this.player = new Player(this, savedPosition?.x ?? 480, savedPosition?.y ?? 500);
+    if (savedPosition?.dir) this.player.setDirection(savedPosition.dir);
     this.createEnvironment();
     this.createNPCs();
+    const stops: ExplorationStop[] = [
+      { id: 'station', label: 'Trạm hướng dẫn', x: 480, y: 500 },
+      { id: 'path', label: 'Đường lên hang', x: 730, y: 475 },
+      { id: 'entrance', label: 'Cửa hang', x: 480, y: 390 },
+      { id: 'formations', label: 'Điểm quan sát thạch nhũ', x: 265, y: 260 },
+      { id: 'light-model', label: 'Bàn mô hình ánh sáng', x: 700, y: 265 },
+      { id: 'stream', label: 'Bờ Suối Mỏ Gà', x: 480, y: 590 }
+    ];
+    this.explorationGuide = new RegionalExplorerGuide(this, 'hang_phuong_hoang', 'Hang Phượng Hoàng & Suối Mỏ Gà', stops, () => this.player, () => QuestManager.getInstance().getCurrentObjectiveText(), stop => {
+      this.player.setPosition(stop.x, stop.y - 34);
+      persistRegionCheckpoint('hang_phuong_hoang', { x: this.player.x, y: this.player.y, dir: this.player.getDirection() }, stop.id);
+    });
 
     this.cameras.main.setBounds(0, 0, this.mapWidth, this.mapHeight);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -39,8 +58,9 @@ export class HangPhuongHoangScene extends Phaser.Scene {
     }
 
     UIManager.getInstance().setOnTravelCallback((regionId) => {
-      this.travelToRegion(regionId);
+      transitionToRegion(this, 'hang_phuong_hoang', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
     });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => persistRegionCheckpoint('hang_phuong_hoang', { x: this.player.x, y: this.player.y, dir: this.player.getDirection() }));
 
     setTimeout(() => {
       UIManager.getInstance().showToast('🦅 Bạn đã bước vào Thắng cảnh quốc gia Hang Phượng Hoàng!');
@@ -120,6 +140,7 @@ export class HangPhuongHoangScene extends Phaser.Scene {
     const isUIBlocking = UIManager.getInstance().isDialogueOpen() || UIManager.getInstance().isAnyModalOpen();
     this.player.setControlActive(!isUIBlocking);
     this.player.update(time, delta);
+    this.explorationGuide?.update();
 
     let nearby = false;
     for (const npc of this.npcs) {
@@ -155,6 +176,8 @@ export class HangPhuongHoangScene extends Phaser.Scene {
       if (action === 'openMinigame' && payload === 'cave_light') {
         UIManager.getInstance().closeDialogue();
         UIManager.getInstance().openMiniGame('cave_light', () => {
+          ProgressionService.completeObjective('quest_hang_phuong_hoang', 'obj_light_lantern', 'hang_phuong_hoang');
+          UIManager.getInstance().updateHUDQuest();
           this.handleNPCInteraction(npc);
         });
       } else if (action === 'openDestCard') {
@@ -165,25 +188,6 @@ export class HangPhuongHoangScene extends Phaser.Scene {
   }
 
   private travelToRegion(regionId: string) {
-    const sceneMap: Record<string, string> = {
-      tan_cuong: 'TanCuongScene',
-      ho_nui_coc: 'HoNuiCocScene',
-      atk_dinh_hoa: 'AtkDinhHoaScene',
-      hang_phuong_hoang: 'HangPhuongHoangScene',
-      suoi_cua_tu: 'SuoiCuaTuScene'
-    };
-
-    const targetScene = sceneMap[regionId];
-    if (targetScene && targetScene !== 'HangPhuongHoangScene') {
-      let started = false;
-      const launch = () => {
-        if (started) return;
-        started = true;
-        this.scene.start(targetScene);
-      };
-      this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', launch);
-      this.time.delayedCall(400, launch);
-    }
+    transitionToRegion(this, 'hang_phuong_hoang', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
   }
 }

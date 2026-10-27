@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { UIManager } from '../ui/UIManager';
+import { getSceneKey, isRegionUnlocked } from '../systems/RegionRegistry';
 
 export class MainMenuScene extends Phaser.Scene {
   private hasSave: boolean = false;
@@ -13,6 +14,15 @@ export class MainMenuScene extends Phaser.Scene {
   create() {
     this.hasSave = SaveManager.getInstance().hasSave();
     UIManager.getInstance().setHUDVisible(false);
+    UIManager.getInstance().setOnTravelCallback(regionId => {
+      const save = SaveManager.getInstance().load();
+      if (!isRegionUnlocked(regionId, save)) return;
+      const target = getSceneKey(regionId);
+      if (!target) return;
+      save.currentRegion = regionId;
+      SaveManager.getInstance().save(save);
+      this.scene.start(target, { regionId });
+    });
 
     const { width, height } = this.scale;
 
@@ -250,7 +260,9 @@ export class MainMenuScene extends Phaser.Scene {
     const launch = () => {
       if (started) return;
       started = true;
-      this.scene.start('TanCuongScene', { isNewGame: false });
+      const save = SaveManager.getInstance().load();
+      const regionId = isRegionUnlocked(save.currentRegion, save) ? save.currentRegion : 'tan_cuong';
+      this.scene.start(getSceneKey(regionId) || 'TanCuongScene', { isNewGame: false, regionId });
     };
 
     this.cameras.main.fadeOut(350, 0, 0, 0);

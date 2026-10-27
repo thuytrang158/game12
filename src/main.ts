@@ -9,6 +9,9 @@ import { HangPhuongHoangScene } from './scenes/HangPhuongHoangScene';
 import { SuoiCuaTuScene } from './scenes/SuoiCuaTuScene';
 import { UIManager } from './ui/UIManager';
 import { AudioManager } from './systems/AudioManager';
+import { ThaiHaiScene } from './scenes/ThaiHaiScene';
+import { DenDuomScene } from './scenes/DenDuomScene';
+import { BaoTangVanHoaScene } from './scenes/BaoTangVanHoaScene';
 
 window.addEventListener('DOMContentLoaded', () => {
   // 1. Initialize UI overlay manager
@@ -43,7 +46,10 @@ window.addEventListener('DOMContentLoaded', () => {
       HoNuiCocScene,
       AtkDinhHoaScene,
       HangPhuongHoangScene,
-      SuoiCuaTuScene
+      SuoiCuaTuScene,
+      ThaiHaiScene,
+      DenDuomScene,
+      BaoTangVanHoaScene
     ]
   };
 

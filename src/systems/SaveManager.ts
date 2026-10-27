@@ -2,6 +2,7 @@ import { IGameSaveData, IItem, IQuest } from '../types/game';
 import { INITIAL_ITEMS } from '../data/items';
 import { INITIAL_QUESTS } from '../data/quests';
 import { ACHIEVEMENTS } from '../data/achievements';
+import { REGION_IDS } from '../data/regionAccess.mjs';
 
 const SAVE_KEY = 'thai_nguyen_quest_save_v1';
 
@@ -43,11 +44,13 @@ export class SaveManager {
       activeQuestId: 'quest_tan_cuong',
       completedQuestIds: [],
       collectedFragmentIds: [],
-      unlockedRegionIds: ['tan_cuong'],
+      unlockedRegionIds: [...REGION_IDS],
       achievements: defaultAchievements,
       teaHarvestHighScore: 0,
       coins: 120,
       passportStamps: {},
+      regionProgress: {},
+      journeyEndingPresented: false,
       timestamp: Date.now()
     };
   }
@@ -68,13 +71,41 @@ export class SaveManager {
       // Safe migrations for newly added fields
       if (parsed.coins === undefined) parsed.coins = 120;
       if (!parsed.passportStamps) parsed.passportStamps = {};
+      if (!parsed.regionProgress || typeof parsed.regionProgress !== 'object') parsed.regionProgress = {};
+      if (typeof parsed.journeyEndingPresented !== 'boolean') parsed.journeyEndingPresented = false;
+      if (!Array.isArray(parsed.inventory)) parsed.inventory = [];
+      if (!Array.isArray(parsed.collectedFragmentIds)) parsed.collectedFragmentIds = [];
+      if (!Array.isArray(parsed.unlockedRegionIds)) parsed.unlockedRegionIds = ['tan_cuong'];
+      const unlockedBeforeMigration = parsed.unlockedRegionIds.length;
+      parsed.unlockedRegionIds = [...new Set([...parsed.unlockedRegionIds, ...REGION_IDS])];
+      const needsUnlockMigration = parsed.unlockedRegionIds.length !== unlockedBeforeMigration;
+      if (!Array.isArray(parsed.completedQuestIds)) parsed.completedQuestIds = [];
       if (!Array.isArray(parsed.teaBrewingHistory)) parsed.teaBrewingHistory = [];
       if (!Array.isArray(parsed.favoriteTeaRecipes)) parsed.favoriteTeaRecipes = [];
       if (parsed.teaBrewingSession && typeof parsed.teaBrewingSession !== 'object') delete parsed.teaBrewingSession;
       parsed.quests ||= {};
-      // Add newly introduced quests to existing v1 saves without resetting old progress.
+      // Merge new stable objectives into v1 saves without discarding completed progress.
       for (const [questId, quest] of Object.entries(INITIAL_QUESTS)) {
-        if (!parsed.quests[questId]) parsed.quests[questId] = JSON.parse(JSON.stringify(quest));
+        const existing = parsed.quests[questId] as IQuest | undefined;
+        if (!existing) {
+          parsed.quests[questId] = JSON.parse(JSON.stringify(quest));
+          continue;
+        }
+        const merged: IQuest = { ...quest, ...existing, objectives: [] };
+        const oldById = new Map((existing.objectives || []).map(objective => [objective.id, objective]));
+        merged.objectives = quest.objectives.map(objective => {
+          const old = oldById.get(objective.id);
+          return old ? { ...objective, ...old } : { ...objective };
+        });
+        for (const old of existing.objectives || []) {
+          if (!quest.objectives.some(objective => objective.id === old.id)) merged.objectives.push(old);
+        }
+        if (existing.status === 'completed' || parsed.completedQuestIds.includes(questId)) {
+          merged.status = 'completed';
+          merged.objectives = merged.objectives.map(objective => ({ ...objective, completed: true }));
+          if (!parsed.completedQuestIds.includes(questId)) parsed.completedQuestIds.push(questId);
+        }
+        parsed.quests[questId] = merged;
       }
       parsed.achievements ||= {};
       for (const [achievementId, achievement] of Object.entries(ACHIEVEMENTS)) {
@@ -82,6 +113,7 @@ export class SaveManager {
           parsed.achievements[achievementId] = achievement.unlocked;
         }
       }
+      if (needsUnlockMigration) this.save(parsed);
       return parsed;
     } catch (e) {
       console.warn('Failed to load save data, resetting to default', e);

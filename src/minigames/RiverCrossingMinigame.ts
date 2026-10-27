@@ -1,6 +1,4 @@
 import { AudioManager } from '../systems/AudioManager';
-import { InventoryManager } from '../systems/InventoryManager';
-import { QuestManager } from '../systems/QuestManager';
 
 export class RiverCrossingMinigame {
   private containerEl!: HTMLElement;
@@ -94,9 +92,6 @@ export class RiverCrossingMinigame {
     if (actionArea) actionArea.style.display = 'block';
 
     document.getElementById('btn-river-finish')?.addEventListener('click', () => {
-      InventoryManager.getInstance().addItem('fragment_exploration', 1);
-      QuestManager.getInstance().completeQuest('quest_suoi_cua_tu');
-
       if (this.onCompleteCallback) {
         this.onCompleteCallback();
       }

@@ -5,6 +5,9 @@ import { INPCConfig } from '../types/game';
 import { UIManager } from '../ui/UIManager';
 import { QuestManager } from '../systems/QuestManager';
 import { AudioManager } from '../systems/AudioManager';
+import { initializeRegionSystems, persistRegionCheckpoint, transitionToRegion } from '../systems/RegionRegistry';
+import { RegionalExplorerGuide, ExplorationStop } from '../systems/RegionalExplorerGuide';
+import { ProgressionService } from '../systems/ProgressionService';
 
 export class AtkDinhHoaScene extends Phaser.Scene {
   private player!: Player;
@@ -14,19 +17,35 @@ export class AtkDinhHoaScene extends Phaser.Scene {
   private mapWidth = 960;
   private mapHeight = 720;
   private nearestInteractable: any = null;
+  private explorationGuide?: RegionalExplorerGuide;
 
   constructor() {
     super({ key: 'AtkDinhHoaScene' });
   }
 
   create() {
+    const save = initializeRegionSystems('atk_dinh_hoa');
     UIManager.getInstance().setHUDVisible(true);
     UIManager.getInstance().setRegionName('ATK Định Hóa');
     UIManager.getInstance().updateHUDQuest();
 
-    this.player = new Player(this, 480, 520);
+    const savedPosition = save.regionProgress?.atk_dinh_hoa?.player;
+    this.player = new Player(this, savedPosition?.x ?? 480, savedPosition?.y ?? 520);
+    if (savedPosition?.dir) this.player.setDirection(savedPosition.dir);
     this.createEnvironment();
     this.createNPCs();
+    const stops: ExplorationStop[] = [
+      { id: 'welcome', label: 'Khu đón tiếp', x: 360, y: 520 },
+      { id: 'exhibition', label: 'Nhà trưng bày', x: 480, y: 260 },
+      { id: 'tin-keo', label: 'Điểm diễn giải Tỉn Keo', x: 680, y: 320 },
+      { id: 'khuon-tat', label: 'Điểm diễn giải Khuôn Tát', x: 250, y: 305 },
+      { id: 'forest', label: 'Đường rừng ký ức', x: 770, y: 530 },
+      { id: 'journal', label: 'Bàn hoàn thiện sổ', x: 480, y: 590 }
+    ];
+    this.explorationGuide = new RegionalExplorerGuide(this, 'atk_dinh_hoa', 'ATK Định Hóa', stops, () => this.player, () => QuestManager.getInstance().getCurrentObjectiveText(), stop => {
+      this.player.setPosition(stop.x, stop.y + 38);
+      persistRegionCheckpoint('atk_dinh_hoa', { x: this.player.x, y: this.player.y, dir: this.player.getDirection() }, stop.id);
+    });
 
     this.cameras.main.setBounds(0, 0, this.mapWidth, this.mapHeight);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -39,8 +58,9 @@ export class AtkDinhHoaScene extends Phaser.Scene {
     }
 
     UIManager.getInstance().setOnTravelCallback((regionId) => {
-      this.travelToRegion(regionId);
+      transitionToRegion(this, 'atk_dinh_hoa', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
     });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => persistRegionCheckpoint('atk_dinh_hoa', { x: this.player.x, y: this.player.y, dir: this.player.getDirection() }));
 
     setTimeout(() => {
       UIManager.getInstance().showToast('⭐ Bạn đã đến Di tích quốc gia đặc biệt ATK Định Hóa!');
@@ -116,6 +136,7 @@ export class AtkDinhHoaScene extends Phaser.Scene {
     const isUIBlocking = UIManager.getInstance().isDialogueOpen() || UIManager.getInstance().isAnyModalOpen();
     this.player.setControlActive(!isUIBlocking);
     this.player.update(time, delta);
+    this.explorationGuide?.update();
 
     let nearby = false;
     for (const npc of this.npcs) {
@@ -150,7 +171,10 @@ export class AtkDinhHoaScene extends Phaser.Scene {
     UIManager.getInstance().startDialogue(startNode, (action, payload) => {
       if (action === 'openMinigame' && payload === 'atk_timeline') {
         UIManager.getInstance().closeDialogue();
+        ProgressionService.completeObjective('quest_atk_dinh_hoa', 'obj_meet_historian', 'atk_dinh_hoa');
         UIManager.getInstance().openMiniGame('atk_timeline', () => {
+          ProgressionService.completeObjective('quest_atk_dinh_hoa', 'obj_timeline_puzzle', 'atk_dinh_hoa');
+          UIManager.getInstance().updateHUDQuest();
           this.handleNPCInteraction(npc);
         });
       } else if (action === 'openDestCard') {
@@ -161,25 +185,6 @@ export class AtkDinhHoaScene extends Phaser.Scene {
   }
 
   private travelToRegion(regionId: string) {
-    const sceneMap: Record<string, string> = {
-      tan_cuong: 'TanCuongScene',
-      ho_nui_coc: 'HoNuiCocScene',
-      atk_dinh_hoa: 'AtkDinhHoaScene',
-      hang_phuong_hoang: 'HangPhuongHoangScene',
-      suoi_cua_tu: 'SuoiCuaTuScene'
-    };
-
-    const targetScene = sceneMap[regionId];
-    if (targetScene && targetScene !== 'AtkDinhHoaScene') {
-      let started = false;
-      const launch = () => {
-        if (started) return;
-        started = true;
-        this.scene.start(targetScene);
-      };
-      this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', launch);
-      this.time.delayedCall(400, launch);
-    }
+    transitionToRegion(this, 'atk_dinh_hoa', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
   }
 }

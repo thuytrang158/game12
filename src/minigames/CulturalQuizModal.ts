@@ -1,6 +1,4 @@
 import { AudioManager } from '../systems/AudioManager';
-import { InventoryManager } from '../systems/InventoryManager';
-import { QuestManager } from '../systems/QuestManager';
 
 export class CulturalQuizModal {
   private containerEl!: HTMLElement;
@@ -80,7 +78,7 @@ export class CulturalQuizModal {
             Vị trí địa lý đắc địa nép mình bên dãy Tam Đảo tạo nên tiểu khí hậu mát mẻ, cùng tầng đất sỏi son đỏ vàng độc nhất vô nhị đã làm nên hương vị "Đệ nhất danh trà" lưu truyền thế hệ!
           </p>
           <button id="btn-quiz-reward" class="btn btn-primary">
-            Đón Nhận "Mảnh Ký Ức Văn Hóa Trà" ➔
+            Ghi nhận phần tìm hiểu ➔
           </button>
         </div>
       `;
@@ -104,11 +102,6 @@ export class CulturalQuizModal {
   }
 
   private handleClaimReward() {
-    // Award fragment and complete quest
-    InventoryManager.getInstance().addItem('fragment_tea_culture', 1);
-    QuestManager.getInstance().completeObjective('quest_tan_cuong', 'obj_quiz_tea');
-    QuestManager.getInstance().completeObjective('quest_tan_cuong', 'obj_claim_fragment');
-
     if (this.onCompleteCallback) {
       this.onCompleteCallback();
     }

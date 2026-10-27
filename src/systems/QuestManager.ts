@@ -41,6 +41,10 @@ export class QuestManager {
     return this.quests[this.activeQuestId];
   }
 
+  public setActiveQuest(questId: string | null) {
+    this.activeQuestId = questId && this.quests[questId]?.status !== 'completed' ? questId : null;
+  }
+
   public getQuest(questId: string): IQuest | undefined {
     return this.quests[questId];
   }
@@ -73,6 +77,8 @@ export class QuestManager {
 
     const obj = quest.objectives.find(o => o.id === objectiveId);
     if (!obj || obj.completed) return false;
+    const objectiveIndex = quest.objectives.findIndex(o => o.id === objectiveId);
+    if (!quest.objectives.slice(0, objectiveIndex).every(o => o.completed)) return false;
 
     obj.completed = true;
     if (obj.targetCount) {
@@ -97,6 +103,8 @@ export class QuestManager {
 
     const obj = quest.objectives.find(o => o.id === objectiveId);
     if (!obj || obj.completed) return false;
+    const objectiveIndex = quest.objectives.findIndex(o => o.id === objectiveId);
+    if (!quest.objectives.slice(0, objectiveIndex).every(o => o.completed)) return false;
 
     if (obj.targetCount !== undefined) {
       obj.currentCount = Math.min(obj.targetCount, (obj.currentCount || 0) + amount);
@@ -121,9 +129,9 @@ export class QuestManager {
   public completeQuest(questId: string): boolean {
     const quest = this.quests[questId];
     if (!quest || quest.status === 'completed') return false;
+    if (!quest.objectives.every(objective => objective.completed)) return false;
 
     quest.status = 'completed';
-    quest.objectives.forEach(o => o.completed = true);
 
     if (!this.completedQuestIds.includes(questId)) {
       this.completedQuestIds.push(questId);

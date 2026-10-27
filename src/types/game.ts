@@ -78,7 +78,7 @@ export interface IDestination {
   name: string;
   vietnameseTitle: string;
   subtitle: string;
-  category: 'Văn hóa trà' | 'Danh thắng hồ' | 'Di tích lịch sử' | 'Thiên nhiên hang động' | 'Khám phá sinh thái';
+  category: string;
   coordinates: { x: number; y: number };
   status: 'locked' | 'unlocked' | 'completed';
   realWorldInfo: {
@@ -88,7 +88,8 @@ export interface IDestination {
     culturalFact: string;
     suggestedTours: ITourRecommendation[];
   };
-  fragmentRewardId: string;
+  fragmentRewardId?: string;
+  sceneKey?: string;
 }
 
 export interface ITourRecommendation {
@@ -154,5 +155,16 @@ export interface IGameSaveData {
   teaBrewingSession?: ITeaBrewingSessionState;
   teaBrewingHistory?: ITeaBrewingSessionState[];
   favoriteTeaRecipes?: IFavoriteTeaRecipe[];
+  regionProgress?: Record<string, IRegionProgress>;
+  journeyEndingPresented?: boolean;
   timestamp: number;
+}
+
+export interface IRegionProgress {
+  visitedStops: string[];
+  completedActivities: string[];
+  checkpoint?: string;
+  player?: { x: number; y: number; dir: Direction };
+  selections?: Record<string, string | number | boolean | string[]>;
+  exhibition?: { cardIds: string[]; title: string; captions: string[] };
 }

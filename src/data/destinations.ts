@@ -47,31 +47,21 @@ export const DESTINATIONS: Record<string, IDestination> = {
     id: 'ho_nui_coc',
     name: 'Hồ Núi Cốc',
     vietnameseTitle: 'Khu Du Lịch Sinh Thái Hồ Núi Cốc',
-    subtitle: 'Huyền Thoại Chuyện Tình Chàng Cốc – Nàng Công',
+    subtitle: '12 Điểm Dừng · Cảnh Quan, Lịch Sử & Huyền Tích',
     category: 'Danh thắng hồ',
     coordinates: { x: 30, y: 52 },
     status: 'locked',
     realWorldInfo: {
-      address: 'Xã Tân Thái, huyện Đại Từ & xã Phúc Trìu, TP. Thái Nguyên (cách TP khoảng 16km)',
-      bestTimeToVisit: 'Tháng 3 đến tháng 11 (thời tiết khô ráo, mặt hồ phẳng lặng, cảnh sắc thơ mộng)',
+      address: 'Khu vực Hồ Núi Cốc, tỉnh Thái Nguyên · kiểm tra thông tin đường đi hiện tại với điểm đón khách trước chuyến thăm',
+      bestTimeToVisit: 'Lựa chọn thời điểm theo dự báo thời tiết và thông báo của đơn vị phục vụ chuyến đi',
       highlights: [
-        'Hồ nước ngọt nhân tạo rộng hơn 25km² với 89 hòn đảo lớn nhỏ rải rác.',
-        'Du thuyền khám phá đảo khỉ, đảo cò, động Huyền Thoại Cung và chùa Thác Vàng uy nghiêm.',
-        'Chiêm ngưỡng tượng Phật Thích Ca Mâu Ni cao 45m ẩn chứa ngôi chùa trong lòng tượng.',
-        'Thưởng thức các món đặc sản: cá mè hồ Núi Cốc, tôm hồ nướng muối ớt, cơm lam Định Hóa.'
+        'Du ngoạn mặt hồ và đảo Núi Cái; quan sát cảnh quan rừng, núi và đường bờ.',
+        'Khám phá Huyền Thoại Cung, Chùa Thác Vàng và sân khấu nhạc nước qua các không gian cách điệu.',
+        'Tìm hiểu lịch sử hồ chứa trên sông Công, phân biệt tư liệu xây dựng với câu chuyện được kể tại khu du lịch.',
+        'Tạo bưu thiếp, ghi chép thiên nhiên và hoàn thiện sổ hành trình mười hai điểm dừng trong trò chơi.'
       ],
-      culturalFact: 'Hồ Núi Cốc là chứng nhân cho câu chuyện tình dân gian đầy xúc động được nhạc sĩ Phó Đức Phương phổ nhạc thành bài ca bất hủ "Huyền Thoại Hồ Núi Cốc".',
-      suggestedTours: [
-        {
-          id: 'tour_hnc_cruise',
-          title: 'Tour Du Thuyền Khám Phá Hồ Núi Cốc & 89 Hòn Đảo',
-          duration: 'Trong ngày (Buổi sáng hoặc chiều)',
-          highlight: 'Du thuyền ca nô, nghe thuyết minh huyền tích nàng Công chàng Cốc, dạo bước rừng thông.',
-          rating: 4.7,
-          tag: 'Tour Khám Phá Sông Nước',
-          websiteUrl: 'https://thainguyentourism.vn/tours/du-thuyen-ho-nui-coc'
-        }
-      ]
+      culturalFact: 'Hồ Núi Cốc là hồ chứa nhân tạo trên sông Công. Huyền tích nàng Công – chàng Cốc được giới thiệu trong không gian kể chuyện tại khu du lịch; đây là nội dung riêng với lịch sử công trình.',
+      suggestedTours: []
     },
     fragmentRewardId: 'fragment_legend'
   },
@@ -173,5 +163,81 @@ export const DESTINATIONS: Record<string, IDestination> = {
       ]
     },
     fragmentRewardId: 'fragment_exploration'
+  },
+
+  thai_hai: {
+    id: 'thai_hai',
+    name: 'Làng Thái Hải',
+    vietnameseTitle: 'Làng Nhà sàn Thái Hải',
+    subtitle: 'Ghé thăm bản làng qua một câu chuyện hư cấu trong trò chơi',
+    category: 'Du lịch cộng đồng',
+    coordinates: { x: 57, y: 66 },
+    status: 'locked',
+    realWorldInfo: {
+      address: 'Thái Nguyên',
+      bestTimeToVisit: 'Giờ mở cửa và điều kiện đón khách cần được xác nhận với đơn vị quản lý trước chuyến đi.',
+      highlights: ['Không gian nhà sàn và trải nghiệm du lịch cộng đồng được giới thiệu trong nguồn du lịch chính thức.'],
+      culturalFact: 'Làng Thái Hải được giới thiệu như một điểm du lịch cộng đồng gắn với không gian nhà sàn Tày. Các nhân vật và sinh hoạt trong chương chơi là tình huống hư cấu, không đại diện cho mọi cộng đồng Tày.',
+      suggestedTours: []
+    },
+    fragmentRewardId: 'fragment_people'
+  },
+
+  den_duom: {
+    id: 'den_duom',
+    name: 'Đền Đuổm',
+    vietnameseTitle: 'Di tích Đền Đuổm',
+    subtitle: 'Theo dấu câu chuyện Dương Tự Minh và không gian lễ hội',
+    category: 'Di tích lịch sử - văn hóa',
+    coordinates: { x: 47, y: 37 },
+    status: 'locked',
+    realWorldInfo: {
+      address: 'Thái Nguyên',
+      bestTimeToVisit: 'Lịch lễ hội và điều kiện tham quan cần được xác nhận với đơn vị quản lý trước chuyến đi.',
+      highlights: ['Di tích và lễ hội Đền Đuổm gắn với nhân vật được tưởng niệm là Dương Tự Minh.'],
+      culturalFact: 'Nguồn Di sản văn hóa Việt Nam ghi nhận các hoạt động lễ hội gồm cả trò chơi dân gian. Phần lễ hội tái hiện trong trò chơi là minh họa quanh năm, không phải lịch tổ chức thực tế và không mô phỏng nghi lễ.',
+      suggestedTours: []
+    },
+    fragmentRewardId: 'fragment_tradition'
+  },
+
+  bao_tang_van_hoa: {
+    id: 'bao_tang_van_hoa',
+    name: 'Bảo tàng Văn hóa các dân tộc Việt Nam',
+    vietnameseTitle: 'Người kết nối di sản',
+    subtitle: 'Khám phá mô hình trưng bày số cách điệu',
+    category: 'Bảo tàng',
+    coordinates: { x: 53, y: 51 },
+    status: 'locked',
+    realWorldInfo: {
+      address: 'Thái Nguyên',
+      bestTimeToVisit: 'Giờ mở cửa, trưng bày và điều kiện tham quan cần được xác nhận với bảo tàng trước chuyến đi.',
+      highlights: ['Chương bảo tàng dùng các mô hình giáo dục số được ghi nhãn minh họa, không khẳng định là hiện vật cụ thể trong sưu tập.'],
+      culturalFact: 'Không gian bản đồ và triển lãm trong trò chơi là cách điệu, không phải sơ đồ mặt bằng thật của bảo tàng.',
+      suggestedTours: []
+    }
   }
 };
+
+// The existing demo contained unverified tour ratings, booking links, schedules,
+// and changing address details. Keep the tourism card useful without presenting
+// invented services as current listings.
+for (const destination of Object.values(DESTINATIONS)) {
+  destination.realWorldInfo.suggestedTours = [];
+  destination.realWorldInfo.address = 'Thái Nguyên';
+  destination.realWorldInfo.bestTimeToVisit = 'Giờ mở cửa, tuyến tham quan và điều kiện tiếp cận có thể thay đổi; hãy xác nhận với đơn vị quản lý trước chuyến đi.';
+}
+
+DESTINATIONS.tan_cuong.realWorldInfo.highlights = ['Vùng chè Tân Cương là bối cảnh của chương trải nghiệm văn hóa trà trong trò chơi.'];
+DESTINATIONS.tan_cuong.realWorldInfo.culturalFact = 'Các thao tác hái và chế biến trong trò chơi là mô phỏng; cách làm thực tế tùy vùng nguyên liệu và người sản xuất.';
+DESTINATIONS.ho_nui_coc.realWorldInfo.highlights = ['Hồ Núi Cốc là bối cảnh của một chương du lịch và truyền thuyết dân gian.'];
+DESTINATIONS.ho_nui_coc.realWorldInfo.culturalFact = 'Ba bến kể chuyện và tuyến thuyền trong trò chơi được sắp đặt hư cấu, không đại diện vị trí các đảo thật.';
+DESTINATIONS.atk_dinh_hoa.realWorldInfo.highlights = ['ATK Định Hóa là di tích gắn với nơi ở, làm việc và hoạt động của Chủ tịch Hồ Chí Minh, Trung ương Đảng và Chính phủ trong kháng chiến chống Pháp.'];
+DESTINATIONS.atk_dinh_hoa.realWorldInfo.culturalFact = 'Mốc 1947 trong trò chơi là bối cảnh kháng chiến; cuộc họp tại Tỉn Keo ngày 6/12/1953 và việc xếp hạng di tích năm 2012 là các mốc khác nhau.';
+DESTINATIONS.hang_phuong_hoang.realWorldInfo.highlights = ['Hang Phượng Hoàng và Suối Mỏ Gà được ghi nhận là quần thể danh thắng và di tích lịch sử.'];
+DESTINATIONS.hang_phuong_hoang.realWorldInfo.culturalFact = 'Ánh sáng, sơ đồ hang và mô hình quan sát trong trò chơi là cách điệu; không khuyến khích chạm, bẻ hoặc lấy nhũ đá.';
+DESTINATIONS.suoi_cua_tu.realWorldInfo.highlights = ['Chương Suối Cửa Tử dùng một tuyến đi bộ mô phỏng dành cho gia đình.'];
+DESTINATIONS.suoi_cua_tu.realWorldInfo.culturalFact = 'Các chặng, thời tiết và thao tác trong trò chơi không phải tuyến trekking thật; điều kiện đường đi ngoài đời cần xác nhận trước chuyến đi.';
+DESTINATIONS.bao_tang_van_hoa.realWorldInfo.address = 'Số 1, đường Đội Cấn, phường Phan Đình Phùng, tỉnh Thái Nguyên';
+DESTINATIONS.bao_tang_van_hoa.realWorldInfo.highlights = ['Bảo tàng được xây dựng từ năm 1960, nghiên cứu, sưu tầm, bảo quản, trưng bày và giáo dục về di sản văn hóa các dân tộc Việt Nam.'];
+DESTINATIONS.bao_tang_van_hoa.realWorldInfo.culturalFact = 'Bộ Văn hóa, Thể thao và Du lịch giới thiệu bảo tàng như không gian lưu giữ và phát huy giá trị văn hóa của 54 dân tộc. Các mô hình trong trò chơi vẫn là minh họa, không đại diện cho hiện vật cụ thể.';

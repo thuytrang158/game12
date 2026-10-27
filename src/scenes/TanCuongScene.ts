@@ -8,6 +8,8 @@ import { QuestManager } from '../systems/QuestManager';
 import { InventoryManager } from '../systems/InventoryManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
+import { transitionToRegion } from '../systems/RegionRegistry';
+import { ProgressionService } from '../systems/ProgressionService';
 
 interface IAmbientWorker {
   id: string;
@@ -128,26 +130,7 @@ export class TanCuongScene extends Phaser.Scene {
   }
 
   private travelToRegion(regionId: string) {
-    const sceneMap: Record<string, string> = {
-      tan_cuong: 'TanCuongScene',
-      ho_nui_coc: 'HoNuiCocScene',
-      atk_dinh_hoa: 'AtkDinhHoaScene',
-      hang_phuong_hoang: 'HangPhuongHoangScene',
-      suoi_cua_tu: 'SuoiCuaTuScene'
-    };
-
-    const targetScene = sceneMap[regionId];
-    if (targetScene && targetScene !== 'TanCuongScene') {
-      let started = false;
-      const launch = () => {
-        if (started) return;
-        started = true;
-        this.scene.start(targetScene);
-      };
-      this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', launch);
-      this.time.delayedCall(400, launch);
-    }
+    transitionToRegion(this, 'tan_cuong', regionId, { x: this.player.x, y: this.player.y, dir: this.player.getDirection() });
   }
 
   private createMapEnvironment() {
@@ -911,7 +894,7 @@ export class TanCuongScene extends Phaser.Scene {
     }
 
     const freeMode = quest.status === 'completed';
-    if (!freeMode) QuestManager.getInstance().completeObjective('quest_first_tea', 'obj_meet_bac_lam_pavilion');
+    if (!freeMode) ProgressionService.completeObjective('quest_first_tea', 'obj_meet_bac_lam_pavilion', 'tan_cuong');
     UIManager.getInstance().openMiniGame('brewing', () => {
       this.performAutoSave();
       if (freeMode) {
@@ -920,7 +903,10 @@ export class TanCuongScene extends Phaser.Scene {
         UIManager.getInstance().showToast('Bạn và Bác Lâm đã cùng thưởng thức mẻ trà đầu tiên.');
         this.beginSunsetEnding();
       }
-    }, freeMode, () => this.performAutoSave());
+    }, freeMode, objectiveId => {
+      if (objectiveId) ProgressionService.completeObjective('quest_first_tea', objectiveId, 'tan_cuong');
+      this.performAutoSave();
+    });
     this.performAutoSave();
   }
 
@@ -1082,12 +1068,14 @@ export class TanCuongScene extends Phaser.Scene {
 
     if (objProcess?.completed || quest?.status === 'completed') {
       this.ensureFinishedTea();
-      UIManager.getInstance().openMiniGame('process', () => {
+      UIManager.getInstance().openMiniGame('process', outcome => {
+        this.applyProcessingOutcome(outcome);
         UIManager.getInstance().showToast('🍃 Mẻ chè Tân Cương của bạn đã được sao thơm nồng hương cốm non!');
         this.performAutoSave();
       });
     } else if (objHarvest?.completed) {
-      UIManager.getInstance().openMiniGame('process', () => {
+      UIManager.getInstance().openMiniGame('process', outcome => {
+        this.applyProcessingOutcome(outcome);
         this.ensureFinishedTea();
         this.startBrewingQuest();
         this.performAutoSave();
@@ -1194,13 +1182,15 @@ export class TanCuongScene extends Phaser.Scene {
     } else if (action === 'openMinigame') {
       if (payload === 'harvest') {
         UIManager.getInstance().closeDialogue();
-        UIManager.getInstance().openMiniGame('harvest', () => {
+        UIManager.getInstance().openMiniGame('harvest', outcome => {
+          this.applyHarvestOutcome(outcome);
           const bacLam = this.npcs.find(n => n.config.id === 'npc_bac_lam');
           if (bacLam) this.handleNPCInteraction(bacLam);
         });
       } else if (payload === 'process') {
         UIManager.getInstance().closeDialogue();
-        UIManager.getInstance().openMiniGame('process', () => {
+        UIManager.getInstance().openMiniGame('process', outcome => {
+          this.applyProcessingOutcome(outcome);
           const bacLam = this.npcs.find(n => n.config.id === 'npc_bac_lam');
           if (bacLam) this.handleNPCInteraction(bacLam);
         });
@@ -1208,13 +1198,14 @@ export class TanCuongScene extends Phaser.Scene {
     } else if (action === 'openQuiz') {
       UIManager.getInstance().closeDialogue();
       UIManager.getInstance().openMiniGame('quiz', () => {
+        ProgressionService.completeObjective('quest_tan_cuong', 'obj_quiz_tea', 'tan_cuong');
+        ProgressionService.completeObjective('quest_tan_cuong', 'obj_claim_fragment', 'tan_cuong');
         const bacLam = this.npcs.find(n => n.config.id === 'npc_bac_lam');
         if (bacLam) this.handleNPCInteraction(bacLam);
       });
     } else if (action === 'giveReward') {
       UIManager.getInstance().closeDialogue();
-      QuestManager.getInstance().completeObjective('quest_tan_cuong', 'obj_claim_fragment');
-      QuestManager.getInstance().completeQuest('quest_tan_cuong');
+      ProgressionService.completeObjective('quest_tan_cuong', 'obj_claim_fragment', 'tan_cuong');
       this.performAutoSave();
     }
   }
@@ -1245,10 +1236,30 @@ export class TanCuongScene extends Phaser.Scene {
     }
 
     // Scenario 3: Harvesting is required (obj_harvest_tea active) OR quest is completed (replayable for enjoyment)
-    UIManager.getInstance().openMiniGame('harvest', () => {
+    UIManager.getInstance().openMiniGame('harvest', outcome => {
+      this.applyHarvestOutcome(outcome);
       UIManager.getInstance().showToast('🍃 Đã hoàn thành đợt thu hoạch búp chè "1 tôm 2 lá"! Hãy mang về chòi cho Bác Lâm.');
       this.performAutoSave();
     });
+  }
+
+  private applyHarvestOutcome(outcome?: { harvested?: number; bonusCoins?: number }) {
+    if (!outcome || outcome.harvested !== 5) return;
+    const quest = QuestManager.getInstance().getQuest('quest_tan_cuong');
+    const objective = quest?.objectives.find(item => item.id === 'obj_harvest_tea');
+    if (!quest || quest.status === 'completed' || objective?.completed) return;
+    InventoryManager.getInstance().addItem('tea_buds_fresh', 5);
+    if (outcome.bonusCoins && outcome.bonusCoins > 0) InventoryManager.getInstance().addCoins(outcome.bonusCoins);
+    QuestManager.getInstance().incrementObjective('quest_tan_cuong', 'obj_harvest_tea', 5);
+    ProgressionService.saveRuntime('tan_cuong');
+  }
+
+  private applyProcessingOutcome(outcome?: { firstBatch?: boolean }) {
+    if (!outcome?.firstBatch) return;
+    const quest = QuestManager.getInstance().getQuest('quest_tan_cuong');
+    if (!quest || quest.status === 'completed' || quest.objectives.find(item => item.id === 'obj_process_tea')?.completed) return;
+    if (!InventoryManager.getInstance().hasItem('tea_processed_tan_cuong')) InventoryManager.getInstance().addItem('tea_processed_tan_cuong', 1);
+    ProgressionService.completeObjective('quest_tan_cuong', 'obj_process_tea', 'tan_cuong');
   }
 
   private performAutoSave() {
@@ -1259,6 +1270,10 @@ export class TanCuongScene extends Phaser.Scene {
       y: Math.round(this.player.y),
       dir: this.player.getDirection()
     };
+    currentSave.currentRegion = 'tan_cuong';
+    currentSave.regionProgress ||= {};
+    currentSave.regionProgress.tan_cuong ||= { visitedStops: [], completedActivities: [] };
+    currentSave.regionProgress.tan_cuong.player = currentSave.playerCoords;
     currentSave.inventory = InventoryManager.getInstance().getItems();
     currentSave.quests = QuestManager.getInstance().getAllQuests();
     currentSave.completedQuestIds = QuestManager.getInstance().getCompletedQuestIds();
